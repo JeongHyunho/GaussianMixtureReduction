@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 
 from cvxopt import solvers, matrix
@@ -9,31 +11,40 @@ from west import fit_west
 solvers.options['show_progress'] = False
 
 
-def fit_cowa(gm_ori: GM, L: int):
+def fit_cowa(gm_ori: GM, L: int, gamma=float('inf')):
     """Find a reduced mixture via constraint optimized weight adaptation
 
     Args:
         gm_ori: the original gaussian mixture
         L: the number of components of reduced mixture
+        gamma: distance threshold
 
     Returns:
         GM: reduced gaussian mixture
 
     """
 
-    fit_gm = fit_west(gm_ori, L=L)
+    out_gm = deepcopy(gm_ori)
 
-    H0 = calc_integral_outer_prod_gm(fit_gm, fit_gm)
-    H1 = calc_integral_outer_prod_gm(gm_ori, fit_gm)
+    while out_gm.n > L:
+        old_n = out_gm.n
+        out_gm = fit_west(out_gm, L=out_gm.n-1, gamma=gamma)
 
-    P = matrix(H0)
-    q = matrix(- H1.T @ gm_ori.pi)
-    G = matrix(- np.eye(fit_gm.n))
-    h = matrix(0.0, (fit_gm.n, 1))
-    A = matrix(1.0, (1, fit_gm.n))
-    b = matrix(1.0)
+        # distance threshold
+        if out_gm.n == old_n:
+            break
 
-    sol = solvers.qp(P, q, G, h, A, b)
-    out_gm = GM(n=fit_gm.n, pi=np.array(sol['x']).flatten(), mu=fit_gm.mu, var=fit_gm.var)
+        H0 = calc_integral_outer_prod_gm(out_gm, out_gm)
+        H1 = calc_integral_outer_prod_gm(gm_ori, out_gm)
+
+        P = matrix(H0)
+        q = matrix(- H1.T @ gm_ori.pi)
+        G = matrix(- np.eye(out_gm.n))
+        h = matrix(0.0, (out_gm.n, 1))
+        A = matrix(1.0, (1, out_gm.n))
+        b = matrix(1.0)
+
+        sol = solvers.qp(P, q, G=G, h=h, A=A, b=b)
+        out_gm = GM(n=out_gm.n, d=out_gm.d, pi=np.array(sol['x']).flatten(), mu=out_gm.mu, var=out_gm.var)
 
     return out_gm

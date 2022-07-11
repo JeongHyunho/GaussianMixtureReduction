@@ -8,17 +8,17 @@ from west import fit_west
 
 
 def main():
-
     num_eval = 1000
     ise = {'runnalls': [], 'west': [], 'gmrc': [], 'cowa': []}
 
     for seed in range(num_eval):
         gm = sample_gm(
             n=10,
+            d=4,
             pi_alpha=np.ones(10),
             mu_rng=[0., 3.],
-            var_df=3,
-            var_scale=1. / 50,
+            var_df=5,
+            var_scale=1./50*np.eye(4),
             seed=seed,
         )
 

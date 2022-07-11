@@ -9,35 +9,41 @@ from scipy.stats import wishart
 class GM:
     """ 1D Gaussian Mixture """
 
-    n: int
-    pi: np.ndarray
-    mu: np.ndarray
-    var: np.ndarray
+    n: int                          # the number of mixture components
+    d: int                          # feature dimension
+    pi: np.ndarray or list          # components' weight, (n,)
+    mu: np.ndarray or list          # components' mean, (n, d)
+    var: np.ndarray or list         # components' covariance matrix, (n, d, d)
 
     def __post_init__(self):
-        # one component gm handling
-        if self.n == 1:
-            self.pi = np.array([self.pi]) if np.isscalar(self.pi) else self.pi
-            self.mu = np.array([self.mu]) if np.isscalar(self.mu) else self.mu
-            self.var = np.array([self.var]) if np.isscalar(self.var) else self.var
+        # non-ndarray handling
+        self.pi = self.pi if isinstance(self.pi, np.ndarray) else np.array(self.pi)
+        self.mu = self.mu if isinstance(self.mu, np.ndarray) else np.array(self.mu)
+        self.var = self.var if isinstance(self.var, np.ndarray) else np.array(self.var)
+
+        # check covariance matrix
+        _trs_diff = np.abs(self.var - np.swapaxes(self.var, -2, -1))
+        assert np.all(_trs_diff < 1e-9), 'not symmetric'
+        _eigvals = np.linalg.eigvalsh(self.var)
+        assert np.all(_eigvals >= -1e-9), 'not semi-positive definite'
 
         # check dim
-        assert self.n == len(self.pi)
-        assert self.n == len(self.mu)
-        assert self.n == len(self.var)
+        assert self.pi.shape == (self.n,)
+        assert self.mu.shape == (self.n, self.d)
+        assert self.var.shape == (self.n, self.d, self.d)
 
     def __eq__(self, other):
         if self.n != other.n:
             return False
-        elif np.any(np.abs(self.mu - other.mu) > 1e-9):
+        elif np.any(np.linalg.norm(self.mu - other.mu, axis=-1) > 1e-9):
             return False
-        elif np.any(np.abs(self.var - other.var) > 1e-9):
+        elif np.any(np.linalg.norm(self.var - other.var, axis=-1) > 1e-9):
             return False
         else:
             return True
 
 
-def sample_gm(n, pi_alpha, mu_rng, var_df, var_scale, seed=None):
+def sample_gm(n, d, pi_alpha, mu_rng, var_df, var_scale, seed=None):
     """Sample specified gaussian mixture
     mean from uniform, var from wishert distribution
 
@@ -52,9 +58,10 @@ def sample_gm(n, pi_alpha, mu_rng, var_df, var_scale, seed=None):
         np.random.seed(seed)
 
     pi = np.random.dirichlet(pi_alpha)
-    mu = np.array([np.random.rand() * (mu_rng[1] - mu_rng[0]) + mu_rng[0] for _ in range(n)])
+    mu = np.array([np.random.rand(d) * (mu_rng[1] - mu_rng[0]) + mu_rng[0] for _ in range(n)])
     var = np.array([wishart.rvs(df=var_df, scale=var_scale) for _ in range(n)])
-    out_gm = GM(n=n, pi=pi, mu=mu, var=var)
+    var = var[..., None, None] if d == 1 else var
+    out_gm = GM(n=n, d=d, pi=pi, mu=mu, var=var)
 
     return out_gm
     
@@ -62,13 +69,20 @@ def sample_gm(n, pi_alpha, mu_rng, var_df, var_scale, seed=None):
 def gm_prob(t, gm: GM):
     """Return gaussian mixture's probability on t
 
+    Args:
+        t: array of (..., D) and D is feature dimension of the mixture
+
     Returns:
         np.ndarray: same length with t
 
     """
 
-    log_prob_i = - 0.5 * (np.log(2 * np.pi) + np.log(gm.var) + (t[..., None] - gm.mu) ** 2 / gm.var)
-    prob = np.sum(gm.pi * np.exp(log_prob_i), axis=-1)
+    ex_t = np.expand_dims(t, axis=-2)
+    ex_var = np.broadcast_to(gm.var, t.shape[:-1] + gm.var.shape)
+
+    term0 = - 0.5 * gm.d * np.log(2 * np.pi) - 0.5 * np.log(np.linalg.det(gm.var))
+    term1 = - 0.5 * np.einsum('...i,...i->...', ex_t - gm.mu, np.linalg.solve(ex_var, ex_t - gm.mu))
+    prob = np.sum(gm.pi * np.exp(term0 + term1), axis=-1)
 
     return prob
 
@@ -95,19 +109,23 @@ def calc_ise(gm0: GM, gm1: GM):
 
 
 def calc_integral_outer_prod_gm(gm0: GM, gm1: GM):
-    """Integrates the outer prodeuct of two gaussian mixtures
+    """Integrates the outer product of two gaussian mixtures
 
     Returns:
         np.ndarray: n by n matrix
 
     """
 
-    x_i = gm0.mu[..., None]
-    mu_j = gm1.mu[None, ...]
-    var_ij = gm0.var[..., None] + gm1.var[None, ...]
+    assert gm0.d == gm1.d, 'different dims'
+    d = gm0.d
 
-    log_H = - 0.5 * (np.log(2 * np.pi) + np.log(var_ij) + (x_i - mu_j) ** 2 / var_ij)
-    H = np.exp(log_H)
+    x_i = np.expand_dims(gm0.mu, axis=1)
+    mu_j = gm1.mu[None, ...]
+    var_ij = np.expand_dims(gm0.var, axis=1) + gm1.var
+
+    term0 = - 0.5 * d * np.log(2 * np.pi) - 0.5 * np.log(np.linalg.det(var_ij))
+    term1 = - 0.5 * np.einsum('...i,...i->...', x_i - mu_j, np.linalg.solve(var_ij, x_i - mu_j))
+    H = np.exp(term0 + term1)
 
     return H
 
@@ -133,25 +151,28 @@ def merge_gm(gm: GM, idx_list: List[Iterable | np.ndarray]):
     merge_var = []
 
     for idx in idx_list:
+        idx = list(idx)
+
         target_pi = np.take(gm.pi, idx)
-        target_mu = np.take(gm.mu, idx)
-        target_var = np.take(gm.var, idx)
+        target_mu = gm.mu[idx]
+        target_var = gm.var[idx]
 
         n = n - len(idx) + 1
         _pi = np.sum(target_pi)
-        _mu = 1. / _pi * np.sum(target_pi * target_mu)
-        _var = 1. / _pi * np.sum(target_pi * (target_var + (target_mu - _mu) ** 2))
+        _mu = 1. / _pi * np.sum(target_pi[..., None] * target_mu, axis=0)
+        _btw = np.einsum('...i, ...j -> ...ij', target_mu - _mu, target_mu - _mu)
+        _var = 1. / _pi * np.sum(target_pi[..., None, None] * (target_var + _btw), axis=0)
 
         merge_pi.append(_pi)
         merge_mu.append(_mu)
         merge_var.append(_var)
 
     ori_i = np.setdiff1d(np.arange(gm.n), flatten_idx)
-    pi = np.hstack([np.take(gm.pi, ori_i), np.hstack(merge_pi)])
-    mu = np.hstack([np.take(gm.mu, ori_i), np.hstack(merge_mu)])
-    var = np.hstack([np.take(gm.var, ori_i), np.hstack(merge_var)])
+    pi = np.hstack([gm.pi[ori_i], np.hstack(merge_pi)])
+    mu = np.vstack([gm.mu[ori_i], np.vstack(merge_mu)])
+    var = np.vstack([gm.var[ori_i], np.stack(merge_var, axis=0)])
 
-    out_gm = GM(n=n, pi=pi, mu=mu, var=var)
+    out_gm = GM(n=n, d=gm.d, pi=pi, mu=mu, var=var)
     return out_gm
 
 
@@ -167,7 +188,17 @@ def kl_gm_comp(gm0: GM, gm1: GM):
 
     """
 
-    kl = np.log(gm1.var / gm0.var[..., None]) \
-         + (gm0.var[..., None] - gm1.var + (gm0.mu[..., None] - gm1.mu) ** 2) / gm1.var
+    assert gm0.d == gm1.d, 'different dims'
+    d = gm0.d
 
+    term0 = np.einsum(
+        '...i, ...j -> ...ij',
+        np.expand_dims(gm0.mu, axis=1) - gm1.mu,
+        np.expand_dims(gm0.mu, axis=1) - gm1.mu,
+    )
+    term1 = np.expand_dims(gm0.var, axis=1) + term0
+    term2 = np.trace(np.linalg.solve(gm1.var, term1) - np.eye(d), axis1=-1, axis2=-2)
+    term3 = np.log(np.linalg.det(gm1.var) / np.linalg.det(gm0.var)[..., None])
+
+    kl = 0.5 * (term2 + term3)
     return kl

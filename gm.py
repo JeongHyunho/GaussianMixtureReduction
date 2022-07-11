@@ -29,9 +29,9 @@ class GM:
     def __eq__(self, other):
         if self.n != other.n:
             return False
-        elif np.any(self.mu != other.mu):
+        elif np.any(np.abs(self.mu - other.mu) > 1e-9):
             return False
-        elif np.any(self.var != other.var):
+        elif np.any(np.abs(self.var - other.var) > 1e-9):
             return False
         else:
             return True
@@ -102,11 +102,11 @@ def calc_integral_outer_prod_gm(gm0: GM, gm1: GM):
 
     """
 
-    x_ij = gm0.mu[..., None]
-    mu_ij = gm1.mu[None, ...]
+    x_i = gm0.mu[..., None]
+    mu_j = gm1.mu[None, ...]
     var_ij = gm0.var[..., None] + gm1.var[None, ...]
 
-    log_H = - 0.5 * (np.log(2 * np.pi) + np.log(var_ij) + (x_ij - mu_ij) ** 2 / var_ij)
+    log_H = - 0.5 * (np.log(2 * np.pi) + np.log(var_ij) + (x_i - mu_j) ** 2 / var_ij)
     H = np.exp(log_H)
 
     return H

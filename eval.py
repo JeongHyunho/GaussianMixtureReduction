@@ -1,9 +1,7 @@
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 from cowa import fit_cowa
-from gm import sample_gm, gm_prob, calc_ise, GM
+from gm import sample_gm, calc_ise
 from gmrc import fit_gmrc
 from runnalls import fit_runnalls
 from west import fit_west

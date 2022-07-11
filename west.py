@@ -22,7 +22,7 @@ def fit_west(gm_ori: GM, L: int, gamma=float('inf')):
     while out_gm.n > L:
         min_pi = np.argmin(out_gm.pi / out_gm.var)
 
-        costs = [calc_ise(GM(n=1, pi=np.ones(1), mu=out_gm.mu[min_pi], var=out_gm.var[min_pi_i]),
+        costs = [calc_ise(GM(n=1, pi=np.ones(1), mu=out_gm.mu[min_pi], var=out_gm.var[min_pi]),
                           GM(n=1, pi=np.ones(1), mu=out_gm.mu[j], var=out_gm.var[j]))
                  for j in range(out_gm.n)]
         costs[min_pi] = float('inf')

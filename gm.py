@@ -4,6 +4,8 @@ from typing import List, Iterable
 import numpy as np
 from scipy.stats import wishart
 
+from utils import gauss_prob
+
 
 @dataclass
 class GM:
@@ -77,12 +79,7 @@ def gm_prob(t, gm: GM):
 
     """
 
-    ex_t = np.expand_dims(t, axis=-2)
-    ex_var = np.broadcast_to(gm.var, t.shape[:-1] + gm.var.shape)
-
-    term0 = - 0.5 * gm.d * np.log(2 * np.pi) - 0.5 * np.log(np.linalg.det(gm.var))
-    term1 = - 0.5 * np.einsum('...i,...i->...', ex_t - gm.mu, np.linalg.solve(ex_var, ex_t - gm.mu))
-    prob = np.sum(gm.pi * np.exp(term0 + term1), axis=-1)
+    prob = np.sum(gm.pi * gauss_prob(t, gm.mu, gm.var), axis=-1)
 
     return prob
 

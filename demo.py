@@ -2,9 +2,11 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+from brute_force import fit_brute_force
 from cowa import fit_cowa
 from gm import sample_gm, gm_prob, calc_ise, GM
 from gmrc import fit_gmrc
+from min_ise import fit_min_ise
 from runnalls import fit_runnalls
 from west import fit_west
 
@@ -35,6 +37,8 @@ def main():
     west_gm = fit_west(gm, L=5)
     gmrc_gm = fit_gmrc(gm, L=5)
     cowa_gm = fit_cowa(gm, L=5)
+    min_ise_gm = fit_min_ise(gm, L=5)
+    brute_gm = fit_brute_force(gm, L=5)
 
     # plot prob
     t = np.linspace(-1, 4, num=1000)[..., None]
@@ -43,14 +47,18 @@ def main():
     west_p = gm_prob(t, west_gm)
     gmrc_p = gm_prob(t, gmrc_gm)
     cowa_p = gm_prob(t, cowa_gm)
+    min_ise_p = gm_prob(t, min_ise_gm)
+    brute_p = gm_prob(t, brute_gm)
 
     fh = plt.figure()
     plt.plot(t, p, '--', c='k')
     plt.plot(t, runnalls_p)
-    plt.plot(t, west_p)
-    plt.plot(t, gmrc_p, '--')
-    plt.plot(t, cowa_p, '--')
-    plt.legend(['full', 'Runnalls', 'West', 'GMRC', 'COWA'])
+    plt.plot(t, west_p, '--')
+    plt.plot(t, gmrc_p, '-.')
+    plt.plot(t, cowa_p, ':')
+    plt.plot(t, min_ise_p, ':')
+    plt.plot(t, brute_p, '--')
+    plt.legend(['full', 'Runnalls', 'West', 'GMRC', 'COWA', 'MIN ISE', 'Brute force'])
     plt.xlabel('x')
     plt.ylabel('p')
     plt.show()
@@ -62,11 +70,15 @@ def main():
     ise_west = calc_ise(gm, west_gm)
     ise_gmrc = calc_ise(gm, gmrc_gm)
     ise_cowa = calc_ise(gm, cowa_gm)
+    ise_min_ise = calc_ise(gm, min_ise_gm)
+    ise_brute = calc_ise(gm, brute_gm)
 
     print(f"ISE Runnalls: {ise_runnalls:.5f}")
     print(f"ISE West: {ise_west:.5f}")
     print(f"ISE GMRC: {ise_gmrc:.5f}")
     print(f"ISE COWA: {ise_cowa:.5f}")
+    print(f"ISE MIN-ISE: {ise_min_ise:.5f}")
+    print(f"ISE Brute: {ise_brute:.5f}")
 
 
 if __name__ == '__main__':

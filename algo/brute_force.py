@@ -1,6 +1,6 @@
 import numpy as np
 
-from gm import GM, merge_gm, calc_ise
+from mixtures.gm import GM, merge_gm, calc_ise
 
 
 def fit_brute_force(gm_ori: GM, L: int):

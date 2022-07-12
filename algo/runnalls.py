@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from gm import GM, merge_gm
+from mixtures.gm import GM, merge_gm
 
 
 def fit_runnalls(gm_ori: GM, L: int):

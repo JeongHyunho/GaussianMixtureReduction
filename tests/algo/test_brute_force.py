@@ -1,8 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from brute_force import fit_brute_force
-from gm import sample_gm, gm_prob
+from algo.brute_force import fit_brute_force
+from mixtures.gm import sample_gm, gm_prob
 
 gm = sample_gm(
         n=3,

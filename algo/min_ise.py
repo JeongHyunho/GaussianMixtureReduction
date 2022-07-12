@@ -1,8 +1,8 @@
 import numpy as np
 from copy import deepcopy
 
-from gm import GM, merge_gm
-from utils import integral_prod_guass_prob
+from mixtures.gm import GM, merge_gm
+from mixtures.utils import integral_prod_guass_prob
 
 
 def fit_min_ise(gm_ori: GM, L: int):

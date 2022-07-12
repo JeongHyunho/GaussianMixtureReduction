@@ -1,9 +1,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from gm import sample_gm, gm_prob
-from runnalls import fit_runnalls
-from gmrc import fit_gmrc
+from mixtures.gm import sample_gm, gm_prob
+from algo.runnalls import fit_runnalls
+from algo.gmrc import fit_gmrc
 
 gm = sample_gm(
         n=3,

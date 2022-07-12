@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from gm import sample_gm, gm_prob, calc_ise, merge_gm, kl_gm_comp
+from mixtures.gm import sample_gm, gm_prob, calc_ise, merge_gm, kl_gm_comp
 
 gm = sample_gm(
         n=3,

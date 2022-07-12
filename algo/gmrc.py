@@ -2,8 +2,8 @@ from copy import deepcopy
 
 import numpy as np
 
-from gm import GM, kl_gm_comp, merge_gm
-from runnalls import fit_runnalls
+from mixtures.gm import GM, kl_gm_comp, merge_gm
+from algo.runnalls import fit_runnalls
 
 
 def fit_gmrc(gm_ori: GM, L: int):

@@ -4,8 +4,8 @@ import numpy as np
 
 from cvxopt import solvers, matrix
 
-from gm import GM, calc_integral_outer_prod_gm
-from west import fit_west
+from mixtures.gm import GM, calc_integral_outer_prod_gm
+from algo.west import fit_west
 
 
 solvers.options['show_progress'] = False

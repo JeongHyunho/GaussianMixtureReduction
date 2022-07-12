@@ -1,8 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from gm import sample_gm, gm_prob
-from min_ise import fit_min_ise
+from mixtures.gm import sample_gm, gm_prob
+from algo.min_ise import fit_min_ise
 
 gm = sample_gm(
         n=3,
@@ -16,10 +16,10 @@ gm = sample_gm(
 t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
 p = gm_prob(np.stack([t0, t1], axis=-1), gm)
 
-# print(gm)
-# plt.contourf(t0, t1, p)
-# plt.plot(gm.mu[:, 0], gm.mu[:, 1], 'x')
-# plt.show()
+print(gm)
+plt.contourf(t0, t1, p)
+plt.plot(gm.mu[:, 0], gm.mu[:, 1], 'x')
+plt.show()
 
 
 def test_min_ise():

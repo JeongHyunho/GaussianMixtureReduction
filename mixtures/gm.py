@@ -4,7 +4,7 @@ from typing import List, Iterable
 import numpy as np
 from scipy.stats import wishart
 
-from utils import gauss_prob
+from mixtures.utils import gauss_prob
 
 
 @dataclass

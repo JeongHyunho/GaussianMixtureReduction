@@ -2,13 +2,13 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from brute_force import fit_brute_force
-from cowa import fit_cowa
-from gm import sample_gm, gm_prob, calc_ise, GM
-from gmrc import fit_gmrc
-from min_ise import fit_min_ise
-from runnalls import fit_runnalls
-from west import fit_west
+from algo.brute_force import fit_brute_force
+from algo.cowa import fit_cowa
+from mixtures.gm import sample_gm, gm_prob, calc_ise, GM
+from algo.gmrc import fit_gmrc
+from algo.min_ise import fit_min_ise
+from algo.runnalls import fit_runnalls
+from algo.west import fit_west
 
 
 preset_gm = True

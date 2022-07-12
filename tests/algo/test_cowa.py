@@ -1,9 +1,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from cowa import fit_cowa
-from gm import sample_gm, gm_prob
-from west import fit_west
+from algo.cowa import fit_cowa
+from mixtures.gm import sample_gm, gm_prob
+from algo.west import fit_west
 
 gm = sample_gm(
         n=3,

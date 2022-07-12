@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from gm import GM, calc_ise, merge_gm
+from mixtures.gm import GM, calc_ise, merge_gm
 
 
 def fit_west(gm_ori: GM, L: int, gamma=float('inf')):

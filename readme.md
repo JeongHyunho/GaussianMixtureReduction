@@ -26,6 +26,8 @@ But, I could not reproduce Fig.1 in the paper. (see [demo.py](./demo.py))
 
 <img alt="Reducec mixtures" height="400" src="./images/demo.png" width="500"/>
 
-Future works list are
+Future works list:
 - [ ] Component means and variance refinement via gradient descent
 - [x] Brute-force initialization to show optimality gap
+- [ ] Batch operation for reducing mixture
+- [ ] Evaluating the product of mixtures reduction

@@ -4,18 +4,19 @@ from typing import List, Iterable
 import numpy as np
 from scipy.stats import wishart
 
-from mixtures.utils import gauss_prob
+from mixtures import check_var, check_dim, check_batch
+from mixtures.utils import gauss_prob, integral_prod_gauss_prob, prod_gauss_dist
 
 
 @dataclass
 class GM:
-    """ 1D Gaussian Mixture """
+    """ Gaussian Mixture """
 
-    n: int                          # the number of mixture components
-    d: int                          # feature dimension
     pi: np.ndarray or list          # components' weight, (n,)
     mu: np.ndarray or list          # components' mean, (n, d)
     var: np.ndarray or list         # components' covariance matrix, (n, d, d)
+
+    batch_form: bool = False
 
     def __post_init__(self):
         # non-ndarray handling
@@ -23,50 +24,56 @@ class GM:
         self.mu = self.mu if isinstance(self.mu, np.ndarray) else np.array(self.mu)
         self.var = self.var if isinstance(self.var, np.ndarray) else np.array(self.var)
 
-        # check covariance matrix
-        _trs_diff = np.abs(self.var - np.swapaxes(self.var, -2, -1))
-        assert np.all(_trs_diff < 1e-9), 'not symmetric'
-        _eigvals = np.linalg.eigvalsh(self.var)
-        assert np.all(_eigvals >= -1e-9), 'not semi-positive definite'
+        # check args
+        self.n, self.d = check_dim(self.pi, self.mu, self.var)  # the number of mixture components, feature dim
+        check_var(self.var)
 
-        # check dim
-        assert self.pi.shape == (self.n,)
-        assert self.mu.shape == (self.n, self.d)
-        assert self.var.shape == (self.n, self.d, self.d)
+        # the size of batch
+        self.b = check_batch(self.pi, self.mu, self.var, self.batch_form)
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'GM'):
         if self.n != other.n:
             return False
-        elif np.any(np.linalg.norm(self.mu - other.mu, axis=-1) > 1e-9):
+        elif np.any(np.abs(self.mu - other.mu) > 1e-9):
             return False
-        elif np.any(np.linalg.norm(self.var - other.var, axis=-1) > 1e-9):
+        elif np.any(np.abs(self.var - other.var) > 1e-9):
             return False
         else:
             return True
 
+    def __mul__(self, other: 'GM') -> 'GM':
+        _s = integral_prod_gauss_prob(self.mu, self.var, other.mu, other.var, mode='cross')
+        _pi = np.ravel(_s * self.pi[..., None] * other.pi)
+        _mu, _var = prod_gauss_dist(self.mu, self.var, other.mu, other.var, mode='cross')
 
-def sample_gm(n, d, pi_alpha, mu_rng, var_df, var_scale, seed=None):
-    """Sample specified gaussian mixture
-    mean from uniform, var from wishert distribution
+        pi = _pi / np.sum(_pi)
+        mu = np.reshape(_mu, (-1, self.d))
+        var = np.reshape(_var, (-1, self.d, self.d))
 
-     Returns:
-         GM: sampled mixture
+        return GM(pi, mu, var)
 
-     """
+    @staticmethod
+    def sample_gm(n, d, pi_alpha, mu_rng, var_df, var_scale, seed=None):
+        """Sample specified gaussian mixture, mean from uniform, var from Wishart distribution
 
-    assert len(mu_rng) == 2 and mu_rng[0] <= mu_rng[1], f'mu_rng of [min, max] is expected, but {mu_rng}'
+         Returns:
+             GM: sampled mixture
 
-    if seed is not None:
-        np.random.seed(seed)
+         """
 
-    pi = np.random.dirichlet(pi_alpha)
-    mu = np.array([np.random.rand(d) * (mu_rng[1] - mu_rng[0]) + mu_rng[0] for _ in range(n)])
-    var = np.array([wishart.rvs(df=var_df, scale=var_scale) for _ in range(n)])
-    var = var[..., None, None] if d == 1 else var
-    out_gm = GM(n=n, d=d, pi=pi, mu=mu, var=var)
+        assert len(mu_rng) == 2 and mu_rng[0] <= mu_rng[1], f'mu_rng of [min, max] is expected, but {mu_rng}'
 
-    return out_gm
-    
+        if seed is not None:
+            np.random.seed(seed)
+
+        pi = np.random.dirichlet(pi_alpha)
+        mu = np.array([np.random.rand(d) * (mu_rng[1] - mu_rng[0]) + mu_rng[0] for _ in range(n)])
+        var = np.array([wishart.rvs(df=var_df, scale=var_scale) for _ in range(n)])
+        var = var[..., None, None] if d == 1 else var
+        out_gm = GM(pi=pi, mu=mu, var=var)
+
+        return out_gm
+
 
 def gm_prob(t, gm: GM):
     """Return gaussian mixture's probability on t
@@ -79,6 +86,8 @@ def gm_prob(t, gm: GM):
 
     """
 
+    if t.shape[-1] != gm.d:
+        raise ValueError(f'query points have different feature dim ({t.shape[-1]}), not {gm.d}')
     prob = np.sum(gm.pi * gauss_prob(t, gm.mu, gm.var), axis=-1)
 
     return prob
@@ -169,7 +178,7 @@ def merge_gm(gm: GM, idx_list: List[Iterable | np.ndarray]):
     mu = np.vstack([gm.mu[ori_i], np.vstack(merge_mu)])
     var = np.vstack([gm.var[ori_i], np.stack(merge_var, axis=0)])
 
-    out_gm = GM(n=n, d=gm.d, pi=pi, mu=mu, var=var)
+    out_gm = GM(pi=pi, mu=mu, var=var)
     return out_gm
 
 

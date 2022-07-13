@@ -5,7 +5,7 @@ import multiprocessing as mp
 
 from algo.brute_force import fit_brute_force
 from algo.cowa import fit_cowa
-from mixtures.gm import sample_gm, calc_ise
+from mixtures.gm import calc_ise, GM
 from algo.gmrc import fit_gmrc
 from algo.min_ise import fit_min_ise
 from algo.runnalls import fit_runnalls
@@ -17,7 +17,7 @@ INC_BRUTE = False
 
 
 def sample_eval(seed):
-    gm = sample_gm(
+    gm = GM.sample_gm(
         n=10,
         d=4,
         pi_alpha=np.ones(10),

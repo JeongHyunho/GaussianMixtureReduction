@@ -45,6 +45,6 @@ def fit_cowa(gm_ori: GM, L: int, gamma=float('inf')):
         b = matrix(1.0)
 
         sol = solvers.qp(P, q, G=G, h=h, A=A, b=b)
-        out_gm = GM(n=out_gm.n, d=out_gm.d, pi=np.array(sol['x']).flatten(), mu=out_gm.mu, var=out_gm.var)
+        out_gm = GM(pi=np.array(sol['x']).flatten(), mu=out_gm.mu, var=out_gm.var)
 
     return out_gm

@@ -4,12 +4,11 @@ import matplotlib.pyplot as plt
 
 from algo.brute_force import fit_brute_force
 from algo.cowa import fit_cowa
-from mixtures.gm import sample_gm, gm_prob, calc_ise, GM
+from mixtures.gm import gm_prob, calc_ise, GM
 from algo.gmrc import fit_gmrc
 from algo.min_ise import fit_min_ise
 from algo.runnalls import fit_runnalls
 from algo.west import fit_west
-
 
 preset_gm = True
 
@@ -21,9 +20,9 @@ def main():
         pi = np.array([0.03, 0.18, 0.12, 0.19, 0.02, 0.16, 0.06, 0.1, 0.08, 0.06])
         mu = np.array([1.45, 2.2, 0.67, 0.48, 1.49, 0.91, 1.01, 1.42, 2.77, 0.89])[..., None]
         var = np.array([0.0487, 0.0305, 0.1171, 0.0174, 0.0295, 0.0102, 0.0323, 0.038, 0.0115, 0.0679])[..., None, None]
-        gm = GM(n=n, d=1, pi=pi, mu=mu, var=var)
+        gm = GM(pi=pi, mu=mu, var=var)
     else:
-        gm = sample_gm(
+        gm = GM.sample_gm(
             n=10,
             d=1,
             pi_alpha=np.ones(10),

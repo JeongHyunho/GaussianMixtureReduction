@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from mixtures.gm import GM, merge_gm
-from mixtures.utils import integral_prod_guass_prob
+from mixtures.utils import integral_prod_gauss_prob
 
 
 def fit_min_ise(gm_ori: GM, L: int):
@@ -33,7 +33,7 @@ def ise_cost(gm: GM):
 
     Returns:
         np.ndarray: n by n matrix, (i, j) element is ise increase when i-th, j-th components are merged,
-                    and diagonal terms are finite
+                    and diagonal terms are infinite
 
     """
 
@@ -52,10 +52,10 @@ def ise_cost(gm: GM):
              + (pi_prod_ij / pi_sum_ij ** 2)[..., None, None] * _var1
 
     # four cost terms
-    cost_cross = pi_prod_ij * integral_prod_guass_prob(gm.mu, gm.var, gm.mu, gm.var, mode='cross')
+    cost_cross = pi_prod_ij * integral_prod_gauss_prob(gm.mu, gm.var, gm.mu, gm.var, mode='cross')
     cost_self = np.diag(cost_cross)
-    cost_merge = pi_sum_ij ** 2 * integral_prod_guass_prob(mu_ij, var_ij, mu_ij, var_ij, mode='self')
-    cost_trans = gm.pi[..., None] * pi_sum_ij * integral_prod_guass_prob(
+    cost_merge = pi_sum_ij ** 2 * integral_prod_gauss_prob(mu_ij, var_ij, mu_ij, var_ij, mode='self')
+    cost_trans = gm.pi[..., None] * pi_sum_ij * integral_prod_gauss_prob(
         np.expand_dims(gm.mu, axis=1),
         np.expand_dims(gm.var, axis=1),
         mu_ij,

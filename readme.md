@@ -29,5 +29,5 @@ But, I could not reproduce Fig.1 in the paper. (see [demo.py](./demo.py))
 Future works list:
 - [ ] Component means and variance refinement via gradient descent
 - [x] Brute-force initialization to show optimality gap
-- [ ] Batch operation for reducing mixture
-- [ ] Evaluating the product of mixtures reduction
+- [x] Batch operation for reducing mixture
+- [ ] Make algorithms torch-compatible

@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import List, Iterable
 
 import numpy as np
@@ -8,21 +7,21 @@ from mixtures import check_var, check_dim, check_batch
 from mixtures.utils import gauss_prob, integral_prod_gauss_prob, prod_gauss_dist
 
 
-@dataclass
 class GM:
     """ Gaussian Mixture """
 
-    pi: np.ndarray or list          # components' weight, (n,)
-    mu: np.ndarray or list          # components' mean, (n, d)
-    var: np.ndarray or list         # components' covariance matrix, (n, d, d)
-
     batch_form: bool = False
 
-    def __post_init__(self):
+    def __init__(
+            self,
+            pi: np.ndarray or list,  # components' weight, (n,)
+            mu: np.ndarray or list,  # components' mean, (n, d)
+            var: np.ndarray or list,  # components' covariance matrix, (n, d, d)
+    ):
         # non-ndarray handling
-        self.pi = self.pi if isinstance(self.pi, np.ndarray) else np.array(self.pi)
-        self.mu = self.mu if isinstance(self.mu, np.ndarray) else np.array(self.mu)
-        self.var = self.var if isinstance(self.var, np.ndarray) else np.array(self.var)
+        self.pi = pi if isinstance(pi, np.ndarray) else np.array(pi)
+        self.mu = mu if isinstance(mu, np.ndarray) else np.array(mu)
+        self.var = var if isinstance(var, np.ndarray) else np.array(var)
 
         # check args
         self.n, self.d = check_dim(self.pi, self.mu, self.var)  # the number of mixture components, feature dim
@@ -30,6 +29,9 @@ class GM:
 
         # the size of batch
         self.b = check_batch(self.pi, self.mu, self.var, self.batch_form)
+
+    def __repr__(self):
+        return f"b:{self.b}\nn:{self.n}\nd:{self.d}\npi:\n{self.pi}\nmu:\n{self.mu}\nvar:\n{self.var}"
 
     def __eq__(self, other: 'GM'):
         if self.n != other.n:
@@ -42,6 +44,10 @@ class GM:
             return True
 
     def __mul__(self, other: 'GM') -> 'GM':
+        if not (self.n, self.d) == (self.n, self.d):
+            ValueError(f"Two GMs have different shape, "
+                       f"GM0: ({self.b}, {self.n}, {self.d}), GM1: ({other.b}, {other.n}, {other.d})")
+
         _s = integral_prod_gauss_prob(self.mu, self.var, other.mu, other.var, mode='cross')
         _pi = np.ravel(_s * self.pi[..., None] * other.pi)
         _mu, _var = prod_gauss_dist(self.mu, self.var, other.mu, other.var, mode='cross')
@@ -74,23 +80,59 @@ class GM:
 
         return out_gm
 
+    def prob(self, t):
+        """Return gaussian mixture's probability on t
 
-def gm_prob(t, gm: GM):
-    """Return gaussian mixture's probability on t
+        Args:
+            t: array of (..., D) and D is feature dimension of the mixture
 
-    Args:
-        t: array of (..., D) and D is feature dimension of the mixture
+        Returns:
+            np.ndarray: same length with t
 
-    Returns:
-        np.ndarray: same length with t
+        """
 
-    """
+        if t.shape[-1] != self.d:
+            raise ValueError(f'query points have different feature dim ({t.shape[-1]}), not {self.d}')
+        prob = np.sum(self.pi * gauss_prob(t, self.mu, self.var), axis=-1)
 
-    if t.shape[-1] != gm.d:
-        raise ValueError(f'query points have different feature dim ({t.shape[-1]}), not {gm.d}')
-    prob = np.sum(gm.pi * gauss_prob(t, gm.mu, gm.var), axis=-1)
+        return prob
 
-    return prob
+    def merge(self, idx_list: List[Iterable | np.ndarray]):
+        """Merge indexed gaussian mixture components with preserved moments
+
+        Args:
+            idx_list: list of index for merged components
+
+        """
+
+        flatten_idx = np.hstack(idx_list)
+        assert len(flatten_idx) == len(set(flatten_idx)), 'Overlapped indices of components to be merged'
+
+        merge_pi = []
+        merge_mu = []
+        merge_var = []
+
+        for idx in idx_list:
+            idx = list(idx)
+
+            target_pi = np.take(self.pi, idx)
+            target_mu = self.mu[idx]
+            target_var = self.var[idx]
+
+            _pi = np.sum(target_pi)
+            _mu = 1. / _pi * np.sum(target_pi[..., None] * target_mu, axis=0)
+            _btw = np.einsum('...i, ...j -> ...ij', target_mu - _mu, target_mu - _mu)
+            _var = 1. / _pi * np.sum(target_pi[..., None, None] * (target_var + _btw), axis=0)
+
+            merge_pi.append(_pi)
+            merge_mu.append(_mu)
+            merge_var.append(_var)
+
+        ori_i = np.setdiff1d(np.arange(self.n), flatten_idx)
+        self.n = len(ori_i) + 1
+        self.pi = np.hstack([self.pi[ori_i], np.hstack(merge_pi)])
+        self.mu = np.vstack([self.mu[ori_i], np.vstack(merge_mu)])
+        self.var = np.vstack([self.var[ori_i], np.stack(merge_var, axis=0)])
 
 
 def calc_ise(gm0: GM, gm1: GM):
@@ -134,52 +176,6 @@ def calc_integral_outer_prod_gm(gm0: GM, gm1: GM):
     H = np.exp(term0 + term1)
 
     return H
-
-
-def merge_gm(gm: GM, idx_list: List[Iterable | np.ndarray]):
-    """Merge indexed gaussian mixtures component with preserved moments
-
-    Args:
-        gm: gaussian mixture to be merged
-        idx_list: list of index for merged components
-
-    Returns:
-        GM: merged gaussian mixture
-
-    """
-
-    flatten_idx = np.hstack(idx_list)
-    assert len(flatten_idx) == len(set(flatten_idx)), 'Overlapped indices of components to be merged'
-
-    n = gm.n
-    merge_pi = []
-    merge_mu = []
-    merge_var = []
-
-    for idx in idx_list:
-        idx = list(idx)
-
-        target_pi = np.take(gm.pi, idx)
-        target_mu = gm.mu[idx]
-        target_var = gm.var[idx]
-
-        n = n - len(idx) + 1
-        _pi = np.sum(target_pi)
-        _mu = 1. / _pi * np.sum(target_pi[..., None] * target_mu, axis=0)
-        _btw = np.einsum('...i, ...j -> ...ij', target_mu - _mu, target_mu - _mu)
-        _var = 1. / _pi * np.sum(target_pi[..., None, None] * (target_var + _btw), axis=0)
-
-        merge_pi.append(_pi)
-        merge_mu.append(_mu)
-        merge_var.append(_var)
-
-    ori_i = np.setdiff1d(np.arange(gm.n), flatten_idx)
-    pi = np.hstack([gm.pi[ori_i], np.hstack(merge_pi)])
-    mu = np.vstack([gm.mu[ori_i], np.vstack(merge_mu)])
-    var = np.vstack([gm.var[ori_i], np.stack(merge_var, axis=0)])
-
-    out_gm = GM(pi=pi, mu=mu, var=var)
-    return out_gm
 
 
 def kl_gm_comp(gm0: GM, gm1: GM):

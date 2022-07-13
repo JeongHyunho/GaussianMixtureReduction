@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mixtures.gm import gm_prob, GM
+from mixtures.gm import GM
 from algo.runnalls import fit_runnalls
 from algo.gmrc import fit_gmrc
 
@@ -26,7 +26,7 @@ def test_runnalls(plot):
 
     if plot:
         t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
-        m_p = gm_prob(np.stack([t0, t1], axis=-1), m_gm)
+        m_p = m_gm.prob(np.stack([t0, t1], axis=-1))
         print(m_gm)
         plt.contourf(t0, t1, m_p)
         plt.plot(m_gm.mu[:, 0], m_gm.mu[:, 1], 'x')
@@ -38,7 +38,7 @@ def test_gmrc(plot):
 
     if plot:
         t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
-        m_p = gm_prob(np.stack([t0, t1], axis=-1), m_gm)
+        m_p = m_gm.prob(np.stack([t0, t1], axis=-1))
         print(m_gm)
         plt.contourf(t0, t1, m_p)
         plt.plot(m_gm.mu[:, 0], m_gm.mu[:, 1], 'x')

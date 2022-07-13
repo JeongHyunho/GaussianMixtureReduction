@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 from algo.cowa import fit_cowa
 from algo.west import fit_west
-from mixtures.gm import gm_prob, GM
+from mixtures.gm import GM
 
 gm = GM.sample_gm(
         n=3,
@@ -26,7 +26,7 @@ def test_west(plot):
 
     if plot:
         t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
-        m_p = gm_prob(np.stack([t0, t1], axis=-1), m_gm)
+        m_p = m_gm.prob(np.stack([t0, t1], axis=-1))
         print(m_gm)
         plt.contourf(t0, t1, m_p)
         plt.plot(m_gm.mu[:, 0], m_gm.mu[:, 1], 'x')
@@ -38,7 +38,7 @@ def test_cowa(plot):
 
     if plot:
         t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
-        m_p = gm_prob(np.stack([t0, t1], axis=-1), m_gm)
+        m_p = m_gm.prob(np.stack([t0, t1], axis=-1))
         print(m_gm)
         plt.contourf(t0, t1, m_p)
         plt.plot(m_gm.mu[:, 0], m_gm.mu[:, 1], 'x')

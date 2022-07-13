@@ -13,9 +13,9 @@ def check_var(var: np.ndarray):
     """
 
     _trs_diff = np.abs(var - np.swapaxes(var, -2, -1))
-    assert np.all(_trs_diff < 1e-9), ValueError('not symmetric')
+    assert np.all(_trs_diff < 1e-9), 'not symmetric'
     _eigvals = np.linalg.eigvalsh(var)
-    assert np.all(_eigvals >= -1e-9), ValueError('not semi-positive definite')
+    assert np.all(_eigvals >= -1e-9), 'not semi-positive definite'
 
 
 def check_dim(pi: np.ndarray, mu: np.ndarray, var: np.ndarray, batch_form=False):
@@ -35,9 +35,9 @@ def check_dim(pi: np.ndarray, mu: np.ndarray, var: np.ndarray, batch_form=False)
 
     """
 
-    assert pi.ndim + 2 == mu.ndim + 1 == var.ndim, ValueError('wrong batch setup')
-    assert pi.shape[-1] == mu.shape[-2] == var.shape[-3], ValueError('wrong number of components')
-    assert mu.shape[-1] == var.shape[-2] == var.shape[-1], ValueError('wrong feature dim')
+    assert pi.ndim + 2 == mu.ndim + 1 == var.ndim, 'wrong batch setup'
+    assert pi.shape[-1] == mu.shape[-2] == var.shape[-3], 'wrong number of components'
+    assert mu.shape[-1] == var.shape[-2] == var.shape[-1], 'wrong feature dim'
 
     n = pi.shape[-1]
     d = mu.shape[-1]
@@ -63,12 +63,12 @@ def check_batch(pi: np.ndarray, mu: np.ndarray, var: np.ndarray, batch_form=Fals
     """
 
     if batch_form:
-        assert pi.ndim > 1 or mu.ndim > 2 or var.ndim > 3, ValueError('batch parameters is not expected')
-        assert pi.shape[0] == mu.shape[0] == var.shape[0], ValueError('inconsistent batch size')
+        assert pi.ndim > 1 or mu.ndim > 2 or var.ndim > 3, 'batch parameters is not expected'
+        assert pi.shape[0] == mu.shape[0] == var.shape[0], 'inconsistent batch size'
 
         return pi.shape[0]
 
     else:
-        assert pi.ndim < 2 and mu.ndim < 3 and var.ndim < 4, ValueError('only 1D batch is allowed')
+        assert pi.ndim < 2 and mu.ndim < 3 and var.ndim < 4, 'only 1D batch is allowed'
 
         return None

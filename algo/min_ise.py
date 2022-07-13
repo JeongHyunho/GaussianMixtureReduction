@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from mixtures.gm import GM, merge_gm
+from mixtures.gm import GM
 from mixtures.utils import integral_prod_gauss_prob
 
 
@@ -23,7 +23,7 @@ def fit_min_ise(gm_ori: GM, L: int):
         c_ij = ise_cost(out_gm)
 
         merge_idx = np.unravel_index(np.argmin(c_ij), c_ij.shape)
-        out_gm = merge_gm(out_gm, [merge_idx])
+        out_gm.merge([merge_idx])
 
     return out_gm
 

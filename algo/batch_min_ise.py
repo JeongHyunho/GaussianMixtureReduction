@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from mixtures.batch_gm import BatchGM, batch_merge_gm
+from mixtures.batch_gm import BatchGM
 from mixtures.utils import integral_prod_gauss_prob
 
 
@@ -24,7 +24,7 @@ def fit_batch_min_ise(batch_gm_ori: BatchGM, L: int):
         c_bij = batch_ise_cost(out_batch_gm)
 
         merge_idx = [np.unravel_index(np.argmin(c_ij), c_ij.shape) for c_ij in c_bij]
-        out_batch_gm = batch_merge_gm(out_batch_gm, merge_idx)
+        out_batch_gm.merge(merge_idx)
 
     return out_batch_gm
 

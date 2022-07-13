@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from mixtures.gm import GM, kl_gm_comp, merge_gm
+from mixtures.gm import GM, kl_gm_comp
 from algo.runnalls import fit_runnalls
 
 
@@ -51,6 +51,7 @@ def kmeans_gm(gm0: GM, gm1: GM):
         for idx in cluster_idx[num_el > 1]:
             merge_idx.append((alloc_idx == idx).nonzero()[0])
 
-        out_gm = merge_gm(gm0, merge_idx)
+        out_gm = deepcopy(gm0)
+        out_gm.merge(merge_idx)
 
     return out_gm

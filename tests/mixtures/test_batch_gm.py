@@ -1,7 +1,8 @@
+from copy import deepcopy
+
 import numpy as np
 
-from mixtures.batch_gm import batch_merge_gm, BatchGM
-from mixtures.gm import merge_gm
+from mixtures.batch_gm import BatchGM
 
 batch_gm = BatchGM.sample_batch_gm(
     n=3,
@@ -14,6 +15,15 @@ batch_gm = BatchGM.sample_batch_gm(
 )
 
 
+def test_batch_gm_mul():
+    gm_prod = batch_gm * batch_gm
+
+
+def test_batch_gm_prob():
+    t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
+    batch_gm.prob(np.stack([t0, t1], axis=-1))
+
+
 def test_batch_gm():
     bgm0 = batch_gm[0]
     bgm1 = batch_gm[:]
@@ -22,7 +32,9 @@ def test_batch_gm():
 
 def test_merge_gm():
     idx_list = [[0, 1], [1, 2], [0, 1], [1, 2], [0, 2]]
-    m_batch_gm = batch_merge_gm(batch_gm, idx_list)
+    cp_bgm = deepcopy(batch_gm)
+    cp_bgm.merge(idx_list)
 
-    for gm, m_gm, idx in zip(batch_gm, m_batch_gm, idx_list):
-        assert m_gm == merge_gm(gm, [idx])
+    for gm, m_gm, idx in zip(batch_gm, cp_bgm, idx_list):
+        gm.merge([idx])
+        assert m_gm == gm

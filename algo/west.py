@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from mixtures.gm import GM, calc_ise, merge_gm
+from mixtures.gm import GM, calc_ise
 
 
 def fit_west(gm_ori: GM, L: int, gamma=float('inf')):
@@ -29,7 +29,7 @@ def fit_west(gm_ori: GM, L: int, gamma=float('inf')):
         min_c_j = np.argmin(costs)
 
         if costs[min_c_j] < gamma:
-            out_gm = merge_gm(out_gm, [[min_pi, min_c_j]])
+            out_gm.merge([[min_pi, min_c_j]])
         else:
             break
 

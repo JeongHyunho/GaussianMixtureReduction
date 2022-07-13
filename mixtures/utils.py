@@ -6,16 +6,16 @@ def gauss_prob(x: np.ndarray, mu: np.ndarray, var: np.ndarray) -> np.ndarray:
 
     Args:
         x: array of (..., D)
-        mu: array of (N, D)
-        var: array of (N, D, D)
+        mu: array of ([B], N, D)
+        var: array of ([B], N, D, D)
 
     Returns:
-        np.ndarray: array of (..., N)
+        np.ndarray: array of (..., [B], N)
 
     """
 
     d = x.shape[-1]
-    ex_x = np.expand_dims(x, axis=-2)
+    ex_x = np.reshape(x, x.shape[:-1] + (1,) * (mu.ndim - 1) + (x.shape[-1],))
     ex_var = np.broadcast_to(var, x.shape[:-1] + var.shape)
 
     term0 = - 0.5 * d * np.log(2 * np.pi) - 0.5 * np.log(np.linalg.det(var))

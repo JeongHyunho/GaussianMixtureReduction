@@ -1,8 +1,10 @@
+from copy import deepcopy
+
 import pytest
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mixtures.gm import gm_prob, calc_ise, merge_gm, kl_gm_comp, GM
+from mixtures.gm import calc_ise, kl_gm_comp, GM
 
 gm = GM.sample_gm(
         n=3,
@@ -26,9 +28,9 @@ def test_gm_mul(plot):
 
     if plot:
         t = np.linspace(-0.5, 4.5, num=1000)[..., None]
-        p0 = gm_prob(t, gm0)
-        p1 = gm_prob(t, gm1)
-        p_prod = gm_prob(t, gm_prod)
+        p0 = gm0.prob(t)
+        p1 = gm1.prob(t)
+        p_prod = gm_prod.prob(t)
 
         plt.plot(t, p0)
         plt.plot(t, p1)
@@ -43,7 +45,7 @@ def test_calc_ise():
 
 def test_gm_prob(plot):
     t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
-    p = gm_prob(np.stack([t0, t1], axis=-1), gm)
+    p = gm.prob(np.stack([t0, t1], axis=-1))
 
     if plot:
         print(gm)
@@ -53,14 +55,15 @@ def test_gm_prob(plot):
 
 
 def test_merge_gm(plot):
-    m_gm = merge_gm(gm, [[0, 1]])
+    cp_gm = deepcopy(gm)
+    cp_gm.merge([[0, 1]])
 
     if plot:
         t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
-        p = gm_prob(np.stack([t0, t1], axis=-1), m_gm)
-        print(m_gm)
+        p = cp_gm.prob(np.stack([t0, t1], axis=-1))
+        print(cp_gm)
         plt.contourf(t0, t1, p)
-        plt.plot(m_gm.mu[:, 0], m_gm.mu[:, 1], 'x')
+        plt.plot(cp_gm.mu[:, 0], cp_gm.mu[:, 1], 'x')
         plt.show()
 
 

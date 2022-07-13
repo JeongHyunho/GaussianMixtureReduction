@@ -1,6 +1,8 @@
+from copy import deepcopy
+
 import numpy as np
 
-from mixtures.gm import GM, merge_gm, calc_ise
+from mixtures.gm import GM, calc_ise
 
 
 def fit_brute_force(gm_ori: GM, L: int):
@@ -20,7 +22,8 @@ def fit_brute_force(gm_ori: GM, L: int):
 
     for parts in set_partitions(np.arange(gm_ori.n), L):
         non_singleton = [p for p in parts if len(p) > 1]
-        m_gm = merge_gm(gm_ori, non_singleton)
+        m_gm = deepcopy(gm_ori)
+        m_gm.merge(non_singleton)
         ise = calc_ise(gm_ori, m_gm)
 
         if ise < best_ise:

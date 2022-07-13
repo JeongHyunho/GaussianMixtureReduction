@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from algo.brute_force import fit_brute_force
 from algo.cowa import fit_cowa
-from mixtures.gm import gm_prob, calc_ise, GM
+from mixtures.gm import calc_ise, GM
 from algo.gmrc import fit_gmrc
 from algo.min_ise import fit_min_ise
 from algo.runnalls import fit_runnalls
@@ -14,7 +14,6 @@ preset_gm = True
 
 
 def main():
-    n = 10
 
     if preset_gm:
         pi = np.array([0.03, 0.18, 0.12, 0.19, 0.02, 0.16, 0.06, 0.1, 0.08, 0.06])
@@ -41,13 +40,13 @@ def main():
 
     # plot prob
     t = np.linspace(-1, 4, num=1000)[..., None]
-    p = gm_prob(t, gm)
-    runnalls_p = gm_prob(t, runnalls_gm)
-    west_p = gm_prob(t, west_gm)
-    gmrc_p = gm_prob(t, gmrc_gm)
-    cowa_p = gm_prob(t, cowa_gm)
-    min_ise_p = gm_prob(t, min_ise_gm)
-    brute_p = gm_prob(t, brute_gm)
+    p = gm.prob(t)
+    runnalls_p = runnalls_gm.prob(t)
+    west_p = west_gm.prob(t)
+    gmrc_p = gmrc_gm.prob(t)
+    cowa_p = cowa_gm.prob(t)
+    min_ise_p = min_ise_gm.prob(t)
+    brute_p = brute_gm.prob(t)
 
     fh = plt.figure()
     plt.plot(t, p, '--', c='k')

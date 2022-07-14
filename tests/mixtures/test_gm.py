@@ -2,7 +2,7 @@ import torch
 from matplotlib import pyplot as plt
 from copy import deepcopy
 
-from mixtures.gm import calc_ise, kl_gm_comp, GM
+from gmr.mixtures import calc_ise, kl_gm_comp, GM
 
 
 def test_gm_mul(plot):

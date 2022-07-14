@@ -1,5 +1,5 @@
-from algo.cowa import fit_cowa
-from algo.west import fit_west
+from gmr.algo.cowa import fit_cowa
+from gmr.algo import fit_west
 
 
 def test_west(plot, sampled_gm, helper):

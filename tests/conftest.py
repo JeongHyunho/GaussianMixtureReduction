@@ -3,9 +3,9 @@ import torch
 
 from matplotlib import pyplot as plt
 
-import mixtures
-from mixtures.gm import GM
-from mixtures.batch_gm import BatchGM
+from gmr import mixtures
+from gmr.mixtures import GM
+from gmr.mixtures import BatchGM
 
 
 def pytest_addoption(parser):

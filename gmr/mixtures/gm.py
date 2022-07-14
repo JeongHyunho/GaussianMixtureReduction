@@ -5,8 +5,12 @@ import torch
 from torch import nn
 from torch.distributions import dirichlet, wishart
 
-from mixtures import options, check_var, check_dim, check_batch
-from mixtures.utils import gauss_prob, integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
+from gmr.mixtures.helpers import check_var, check_dim, check_batch
+from gmr.mixtures.utils import gauss_prob, integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
+
+options = {
+    'device': 'cpu',
+}
 
 
 class GM(nn.Module):

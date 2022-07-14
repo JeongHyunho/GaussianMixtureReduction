@@ -4,13 +4,7 @@ import torch
 import numpy as np
 import multiprocessing as mp
 
-from algo.brute_force import fit_brute_force
-from algo.cowa import fit_cowa
-from mixtures.gm import calc_ise, GM
-from algo.gmrc import fit_gmrc
-from algo.min_ise import fit_min_ise
-from algo.runnalls import fit_runnalls
-from algo.west import fit_west
+from gmr import mixtures, algo
 
 
 N_PROCESSES = 8
@@ -18,7 +12,7 @@ INC_BRUTE = False
 
 
 def sample_eval(seed):
-    gm = GM.sample_gm(
+    gm = mixtures.GM.sample_gm(
         n=10,
         d=4,
         pi_alpha=torch.ones(10),
@@ -28,19 +22,19 @@ def sample_eval(seed):
         seed=seed,
     )
 
-    runnalls_gm = fit_runnalls(gm, L=5)
-    west_gm = fit_west(gm, L=5)
-    gmrc_gm = fit_gmrc(gm, L=5)
-    cowa_gm = fit_cowa(gm, L=5)
-    min_ise_gm = fit_min_ise(gm, L=5)
-    brute_gm = fit_brute_force(gm, L=5) if INC_BRUTE else gm
+    runnalls_gm = algo.fit_runnalls(gm, L=5)
+    west_gm = algo.fit_west(gm, L=5)
+    gmrc_gm = algo.fit_gmrc(gm, L=5)
+    cowa_gm = algo.fit_cowa(gm, L=5)
+    min_ise_gm = algo.fit_min_ise(gm, L=5)
+    brute_gm = algo.fit_brute_force(gm, L=5) if INC_BRUTE else gm
 
-    ise_runnalls = calc_ise(gm, runnalls_gm).item()
-    ise_west = calc_ise(gm, west_gm).item()
-    ise_gmrc = calc_ise(gm, gmrc_gm).item()
-    ise_cowa = calc_ise(gm, cowa_gm).item()
-    ise_min_ise = calc_ise(gm, min_ise_gm).item()
-    ise_brute = calc_ise(gm, brute_gm).item()
+    ise_runnalls = mixtures.calc_ise(gm, runnalls_gm).item()
+    ise_west = mixtures.calc_ise(gm, west_gm).item()
+    ise_gmrc = mixtures.calc_ise(gm, gmrc_gm).item()
+    ise_cowa = mixtures.calc_ise(gm, cowa_gm).item()
+    ise_min_ise = mixtures.calc_ise(gm, min_ise_gm).item()
+    ise_brute = mixtures.calc_ise(gm, brute_gm).item()
 
     return ise_runnalls, ise_west, ise_gmrc, ise_cowa, ise_min_ise, ise_brute
 

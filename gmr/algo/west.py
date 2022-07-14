@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from copy import deepcopy
 
-from mixtures.gm import GM, calc_ise
+from gmr.mixtures.gm import GM, calc_ise
 
 
 def fit_west(gm_ori: GM, L: int, gamma=float('inf')):

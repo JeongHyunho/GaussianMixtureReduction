@@ -2,8 +2,8 @@ from typing import List
 
 import torch
 
-from mixtures.gm import GM
-from mixtures.utils import integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
+from gmr.mixtures.gm import GM
+from gmr.mixtures.utils import integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
 
 
 class BatchGM(GM):

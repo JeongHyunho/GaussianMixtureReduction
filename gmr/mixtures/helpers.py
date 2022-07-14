@@ -1,11 +1,6 @@
 import torch
 
 
-options = {
-    'device': 'cpu',
-}
-
-
 def check_var(var: torch.Tensor):
     """Confirm variance matrix is symmetric and positive definite
 

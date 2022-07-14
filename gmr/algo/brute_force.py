@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from mixtures.gm import GM, calc_ise
+from gmr.mixtures.gm import GM, calc_ise
 
 
 def fit_brute_force(gm_ori: GM, L: int):

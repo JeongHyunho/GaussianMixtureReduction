@@ -1,5 +1,5 @@
-from algo.runnalls import fit_runnalls
-from algo.gmrc import fit_gmrc
+from gmr.algo import fit_runnalls
+from gmr.algo import fit_gmrc
 
 
 def test_runnalls(plot, sampled_gm, helper):

@@ -2,24 +2,30 @@ import torch
 import numpy as np
 from copy import deepcopy
 
-from mixtures.gm import GM
-from mixtures.batch_gm import BatchGM
-from mixtures.utils import integral_prod_gauss_prob
+from gmr.mixtures.gm import GM
+from gmr.mixtures.batch_gm import BatchGM
+from gmr.mixtures.utils import integral_prod_gauss_prob
 
 
-def fit_min_ise(gm_ori: GM | BatchGM, L: int):
+def fit_min_ise(gm_ori: GM | BatchGM, L: int, inplace=False):
     """Iteratively merge two components of mixture which incurs minimum ise increase
 
     Args:
         gm_ori: the (batch of) gaussian mixture to be reduced
         L: the number of components of reduced mixture
+        inplace: change mixture in arg or not
 
     Returns:
         GM: reduced (batch of) gaussian mixture
 
     """
 
-    out_gm = deepcopy(gm_ori)
+    assert gm_ori.n > L, 'More components in the mixture than {L} are required'
+
+    if inplace:
+        out_gm = gm_ori
+    else:
+        out_gm = deepcopy(gm_ori)
 
     while out_gm.n > L:
         cost = ise_cost(out_gm)

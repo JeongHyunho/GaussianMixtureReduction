@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from copy import deepcopy
 
-from mixtures.gm import GM
+from gmr.mixtures.gm import GM
 
 
 def fit_runnalls(gm_ori: GM, L: int):

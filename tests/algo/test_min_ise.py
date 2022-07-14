@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from algo.min_ise import fit_min_ise, ise_cost
-from mixtures.utils import integral_prod_gauss_prob
+from gmr.algo import fit_min_ise, ise_cost
+from gmr.mixtures.utils import integral_prod_gauss_prob
 
 
 def test_min_ise(plot, sampled_gm, helper):

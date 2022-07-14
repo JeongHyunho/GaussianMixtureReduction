@@ -5,8 +5,8 @@ import torch
 
 from cvxopt import solvers, matrix
 
-from mixtures.gm import GM, calc_integral_outer_prod_gm
-from algo.west import fit_west
+from gmr.mixtures.gm import GM, calc_integral_outer_prod_gm
+from gmr.algo.west import fit_west
 
 
 solvers.options['show_progress'] = False

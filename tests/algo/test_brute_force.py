@@ -1,4 +1,4 @@
-from algo.brute_force import fit_brute_force
+from gmr.algo import fit_brute_force
 
 
 def test_brute_force(plot, sampled_gm, helper):

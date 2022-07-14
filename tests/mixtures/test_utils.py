@@ -1,6 +1,6 @@
 import torch
 
-from mixtures.utils import integral_prod_gauss_prob, prod_gauss_dist
+from gmr.mixtures.utils import integral_prod_gauss_prob, prod_gauss_dist
 
 
 def test_integral_prod_gauss_prob(sampled_gm):

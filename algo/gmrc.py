@@ -43,7 +43,7 @@ def kmeans_gm(gm0: GM, gm1: GM):
     while old_gm != out_gm:
         old_gm = out_gm
 
-        kl = kl_gm_comp(gm0, gm1)
+        kl = kl_gm_comp(gm0, gm1).cpu().numpy()
         alloc_idx = np.argmin(kl, axis=-1)
         cluster_idx, num_el = np.unique(alloc_idx, return_counts=True)
 

@@ -1,35 +1,30 @@
-from typing import List, Iterable
+from typing import List
 
-import numpy as np
+import torch
 
 from mixtures.gm import GM
-from mixtures.utils import integral_prod_gauss_prob, prod_gauss_dist
+from mixtures.utils import integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
 
 
 class BatchGM(GM):
     """ Batch Gaussian Mixture """
 
-    def __init__(
-            self,
-            pi: np.ndarray or list,     # components' weight, (b, n)
-            mu: np.ndarray or list,     # components' mean, (b, n, d)
-            var: np.ndarray or list,    # components' covariance matrix, (b, n, d, d)
-    ):
+    def __init__(self, *args, **kwargs):
         self.batch_form = True
-        super().__init__(pi=pi, mu=mu, var=var)
+        super().__init__(*args, **kwargs)
 
     def __mul__(self, other: 'BatchGM') -> 'BatchGM':
-        if not (self.b, self.n, self.d) == (other.b, self.n, self.d):
+        if not (self.b, self.n, self.d) == (other.b, other.n, other.d):
             ValueError(f"Two BatchGMs have different shape, "
                        f"BatchGM0: ({self.b}, {self.n}, {self.d}), BatchGM1: ({other.b}, {other.n}, {other.d})")
 
         _s = integral_prod_gauss_prob(self.mu, self.var, other.mu, other.var, mode='cross')
-        _pi = np.reshape(_s * np.expand_dims(self.pi, axis=-1) * np.expand_dims(other.pi, axis=-2), (self.b, -1))
+        _pi = (_s * self.pi.unsqueeze(dim=-1) * other.pi.unsqueeze(dim=-2)).view(self.b, -1)
         _mu, _var = prod_gauss_dist(self.mu, self.var, other.mu, other.var, mode='cross')
 
-        pi = _pi / np.sum(_pi, axis=-1, keepdims=True)
-        mu = np.reshape(_mu, (self.b, -1, self.d))
-        var = np.reshape(_var, (self.b, -1, self.d, self.d))
+        pi = _pi / torch.sum(_pi, dim=-1, keepdim=True)
+        mu = _mu.view(self.b, -1, self.d)
+        var = _var.view(self.b, -1, self.d, self.d)
 
         return BatchGM(pi=pi, mu=mu, var=var)
 
@@ -53,16 +48,16 @@ class BatchGM(GM):
         """
 
         if seed is not None:
-            np.random.seed(seed)
+            torch.manual_seed(seed)
 
         gm_list = [GM.sample_gm(n, d, pi_alpha, mu_rng, var_df, var_scale) for _ in range(b)]
-        pi = np.stack([gm.pi for gm in gm_list], axis=0)
-        mu = np.stack([gm.mu for gm in gm_list], axis=0)
-        var = np.stack([gm.var for gm in gm_list], axis=0)
+        pi = torch.stack([gm.pi for gm in gm_list], dim=0)
+        mu = torch.stack([gm.mu for gm in gm_list], dim=0)
+        var = torch.stack([gm.var for gm in gm_list], dim=0)
 
         return BatchGM(pi, mu, var)
 
-    def merge(self, idx_list: List[Iterable | np.ndarray]):
+    def merge(self, idx_list: torch.Tensor | List[torch.Tensor]):
         """Batch-wise Merge each gaussian mixture in batch
         Only one round of two component merge is expected
 
@@ -71,23 +66,24 @@ class BatchGM(GM):
 
         """
 
-        idx_list = np.array(idx_list)
+        idx_list = torch.tensor(idx_list, device=self.pi.device).long()
         if idx_list.shape != (self.b, 2):
             ValueError('indices list have wrong dimensions')
-        if not np.all(idx_list[:, 0] != idx_list[:, 1]):
+        if torch.any(torch.eq(idx_list[:, 0], idx_list[:, 1])):
             ValueError('overlapped indices are not allowed')
 
-        target_pi = np.take_along_axis(self.pi, idx_list, axis=1)                       # B x 2
-        target_mu = np.take_along_axis(self.mu, idx_list[..., None], axis=1)            # B x 2 x D
-        target_var = np.take_along_axis(self.var, idx_list[..., None, None], axis=1)    # B x 2 x D x D
+        target_pi = torch.take_along_dim(self.pi, idx_list, dim=1)                       # B x 2
+        target_mu = torch.take_along_dim(self.mu, idx_list[..., None], dim=1)            # B x 2 x D
+        target_var = torch.take_along_dim(self.var, idx_list[..., None, None], dim=1)    # B x 2 x D x D
 
-        _pi = np.sum(target_pi, axis=-1, keepdims=True)
-        _mu = 1. / _pi[..., None] * np.sum(target_pi[..., None] * target_mu, axis=1, keepdims=True)
-        _btw = np.einsum('...i,...j->...ij', target_mu - _mu, target_mu - _mu)
-        _var = 1. / _pi[..., None, None] * np.sum(target_pi[..., None, None] * (target_var + _btw), axis=1, keepdims=True)
+        _pi = torch.sum(target_pi, dim=-1, keepdim=True)
+        _mu = 1. / _pi[..., None] * torch.sum(target_pi[..., None] * target_mu, dim=1, keepdim=True)
+        _btw = torch.einsum('...i,...j->...ij', target_mu - _mu, target_mu - _mu)
+        _var = 1. / _pi[..., None, None] * \
+               torch.sum(target_pi[..., None, None] * (target_var + _btw), dim=1, keepdim=True)
 
-        ori_idx = np.array([np.setdiff1d(np.arange(self.n), idx) for idx in idx_list])
+        ori_idx = torch.stack([setdiff1d(torch.arange(self.n).to(idx), idx) for idx in idx_list], dim=0)
         self.n = self.n - 1
-        self.pi = np.concatenate([np.take_along_axis(self.pi, ori_idx, axis=1), _pi], axis=1)
-        self.mu = np.concatenate([np.take_along_axis(self.mu, ori_idx[..., None], axis=1), _mu], axis=1)
-        self.var = np.concatenate([np.take_along_axis(self.var, ori_idx[..., None, None], axis=1), _var], axis=1)
+        self.pi = torch.cat([torch.take_along_dim(self.pi, ori_idx, dim=1), _pi], dim=1)
+        self.mu = torch.cat([torch.take_along_dim(self.mu, ori_idx[..., None], dim=1), _mu], dim=1)
+        self.var = torch.cat([torch.take_along_dim(self.var, ori_idx[..., None, None], dim=1), _var], dim=1)

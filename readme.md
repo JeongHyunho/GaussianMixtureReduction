@@ -27,7 +27,9 @@ But, I could not reproduce Fig.1 in the paper. (see [demo.py](./demo.py))
 <img alt="Reducec mixtures" height="400" src="./images/demo.png" width="500"/>
 
 Future works list:
-- [ ] Component means and variance refinement via gradient descent
+- [ ] Component means and variances refinement via gradient descent
 - [x] Brute-force initialization to show optimality gap
-- [x] Batch operation for reducing mixture
-- [ ] Make algorithms torch-compatible
+- [ ] Batch operation for reducing mixture
+  - [ ] Runalls
+  - [x] MIN-ISE
+- [x] Make algorithms torch-compatible and GPU-compatible

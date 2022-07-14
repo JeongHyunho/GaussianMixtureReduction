@@ -1,30 +1,35 @@
-import numpy as np
+import torch
 
 
-def check_var(var: np.ndarray):
+options = {
+    'device': 'cpu',
+}
+
+
+def check_var(var: torch.Tensor):
     """Confirm variance matrix is symmetric and positive definite
 
     Args:
-        var: array of (..., D, D)
+        var: tensor of (..., D, D)
 
     Raises:
         ValueError: if inadequate variance matrix
 
     """
 
-    _trs_diff = np.abs(var - np.swapaxes(var, -2, -1))
-    assert np.all(_trs_diff < 1e-9), 'not symmetric'
-    _eigvals = np.linalg.eigvalsh(var)
-    assert np.all(_eigvals >= -1e-9), 'not semi-positive definite'
+    _trs_diff = torch.abs(var - torch.swapaxes(var, -2, -1))
+    assert torch.all(_trs_diff < 1e-6), 'not symmetric'
+    _eigvals = torch.linalg.eigvalsh(var)
+    assert torch.all(_eigvals >= -1e-6), 'not semi-positive definite'
 
 
-def check_dim(pi: np.ndarray, mu: np.ndarray, var: np.ndarray, batch_form=False):
+def check_dim(pi: torch.Tensor, mu: torch.Tensor, var: torch.Tensor):
     """Confirm mixture parameters have consistent dimensions
 
     Args:
-        pi: array of (..., N)
-        mu: array of (..., N, D)
-        var: array of (..., N, D, D)
+        pi: tensor of (..., N)
+        mu: tensor of (..., N, D)
+        var: tensor of (..., N, D, D)
 
     Returns:
         int: the number of components
@@ -36,7 +41,7 @@ def check_dim(pi: np.ndarray, mu: np.ndarray, var: np.ndarray, batch_form=False)
     """
 
     assert pi.ndim + 2 == mu.ndim + 1 == var.ndim, 'wrong batch setup'
-    assert pi.shape[-1] == mu.shape[-2] == var.shape[-3], 'wrong number of components'
+    assert pi.size(-1) == mu.size(-2) == var.size(-3), 'wrong number of components'
     assert mu.shape[-1] == var.shape[-2] == var.shape[-1], 'wrong feature dim'
 
     n = pi.shape[-1]
@@ -45,13 +50,13 @@ def check_dim(pi: np.ndarray, mu: np.ndarray, var: np.ndarray, batch_form=False)
     return n, d
 
 
-def check_batch(pi: np.ndarray, mu: np.ndarray, var: np.ndarray, batch_form=False):
+def check_batch(pi: torch.Tensor, mu: torch.Tensor, var: torch.Tensor, batch_form=False):
     """Confirm parameters' batch size is consistent
 
     Args:
-        pi: array of (B, N)
-        mu: array of (B, N, D)
-        var: array of (B, N, D, D)
+        pi: tensor of (B, N)
+        mu: tensor of (B, N, D)
+        var: tensor of (B, N, D, D)
         batch_form: bool
 
     Returns:

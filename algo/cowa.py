@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import numpy as np
+import torch
 
 from cvxopt import solvers, matrix
 
@@ -34,17 +35,18 @@ def fit_cowa(gm_ori: GM, L: int, gamma=float('inf')):
         if out_gm.n == old_n:
             break
 
-        H0 = calc_integral_outer_prod_gm(out_gm, out_gm)
-        H1 = calc_integral_outer_prod_gm(gm_ori, out_gm)
+        H0 = calc_integral_outer_prod_gm(out_gm, out_gm).cpu().numpy().astype('d')
+        H1 = calc_integral_outer_prod_gm(gm_ori, out_gm).cpu().numpy().astype('d')
 
         P = matrix(H0)
-        q = matrix(- H1.T @ gm_ori.pi)
+        q = matrix(- H1.T @ gm_ori.pi.cpu().numpy().astype('d'))
         G = matrix(- np.eye(out_gm.n))
         h = matrix(0.0, (out_gm.n, 1))
         A = matrix(1.0, (1, out_gm.n))
         b = matrix(1.0)
 
         sol = solvers.qp(P, q, G=G, h=h, A=A, b=b)
-        out_gm = GM(pi=np.array(sol['x']).flatten(), mu=out_gm.mu, var=out_gm.var)
+        opt_pi = torch.tensor(np.array(sol['x']).flatten(), dtype=torch.float)
+        out_gm = GM(pi=opt_pi, mu=out_gm.mu, var=out_gm.var)
 
     return out_gm

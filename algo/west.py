@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from copy import deepcopy
 
@@ -20,10 +21,10 @@ def fit_west(gm_ori: GM, L: int, gamma=float('inf')):
     out_gm = deepcopy(gm_ori)
 
     while out_gm.n > L:
-        min_pi = np.argmin(out_gm.pi / np.trace(out_gm.var, axis1=-1, axis2=-2))
+        min_pi = torch.argmin(out_gm.pi / torch.einsum('...ii', out_gm.var))
 
-        costs = [calc_ise(GM(pi=np.ones(1), mu=[out_gm.mu[min_pi]], var=[out_gm.var[min_pi]]),
-                          GM(pi=np.ones(1), mu=[out_gm.mu[j]], var=[out_gm.var[j]]))
+        costs = [calc_ise(GM(pi=[torch.ones(1)], mu=[out_gm.mu[min_pi]], var=[out_gm.var[min_pi]]),
+                          GM(pi=[torch.ones(1)], mu=[out_gm.mu[j]], var=[out_gm.var[j]])).cpu()
                  for j in range(out_gm.n) if j != min_pi]
         costs.insert(min_pi, float('inf'))
         min_c_j = np.argmin(costs)

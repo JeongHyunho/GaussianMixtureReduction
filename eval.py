@@ -1,5 +1,6 @@
 import sys
 
+import torch
 import numpy as np
 import multiprocessing as mp
 
@@ -20,10 +21,10 @@ def sample_eval(seed):
     gm = GM.sample_gm(
         n=10,
         d=4,
-        pi_alpha=np.ones(10),
+        pi_alpha=torch.ones(10),
         mu_rng=[0., 3.],
         var_df=5,
-        var_scale=1./50*np.eye(4),
+        var_scale=1./50*torch.eye(4),
         seed=seed,
     )
 
@@ -34,12 +35,12 @@ def sample_eval(seed):
     min_ise_gm = fit_min_ise(gm, L=5)
     brute_gm = fit_brute_force(gm, L=5) if INC_BRUTE else gm
 
-    ise_runnalls = calc_ise(gm, runnalls_gm)
-    ise_west = calc_ise(gm, west_gm)
-    ise_gmrc = calc_ise(gm, gmrc_gm)
-    ise_cowa = calc_ise(gm, cowa_gm)
-    ise_min_ise = calc_ise(gm, min_ise_gm)
-    ise_brute = calc_ise(gm, brute_gm)
+    ise_runnalls = calc_ise(gm, runnalls_gm).item()
+    ise_west = calc_ise(gm, west_gm).item()
+    ise_gmrc = calc_ise(gm, gmrc_gm).item()
+    ise_cowa = calc_ise(gm, cowa_gm).item()
+    ise_min_ise = calc_ise(gm, min_ise_gm).item()
+    ise_brute = calc_ise(gm, brute_gm).item()
 
     return ise_runnalls, ise_west, ise_gmrc, ise_cowa, ise_min_ise, ise_brute
 

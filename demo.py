@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 import matplotlib.pyplot as plt
 
@@ -16,15 +16,15 @@ preset_gm = True
 def main():
 
     if preset_gm:
-        pi = np.array([0.03, 0.18, 0.12, 0.19, 0.02, 0.16, 0.06, 0.1, 0.08, 0.06])
-        mu = np.array([1.45, 2.2, 0.67, 0.48, 1.49, 0.91, 1.01, 1.42, 2.77, 0.89])[..., None]
-        var = np.array([0.0487, 0.0305, 0.1171, 0.0174, 0.0295, 0.0102, 0.0323, 0.038, 0.0115, 0.0679])[..., None, None]
+        pi = torch.tensor([0.03, 0.18, 0.12, 0.19, 0.02, 0.16, 0.06, 0.1, 0.08, 0.06])
+        mu = torch.tensor([1.45, 2.2, 0.67, 0.48, 1.49, 0.91, 1.01, 1.42, 2.77, 0.89])[..., None]
+        var = torch.tensor([0.0487, 0.0305, 0.1171, 0.0174, 0.0295, 0.0102, 0.0323, 0.038, 0.0115, 0.0679])[..., None, None]
         gm = GM(pi=pi, mu=mu, var=var)
     else:
         gm = GM.sample_gm(
             n=10,
             d=1,
-            pi_alpha=np.ones(10),
+            pi_alpha=torch.ones(10),
             mu_rng=[0., 3.],
             var_df=1,
             var_scale=0.1,
@@ -39,14 +39,14 @@ def main():
     brute_gm = fit_brute_force(gm, L=5)
 
     # plot prob
-    t = np.linspace(-1, 4, num=1000)[..., None]
+    t = torch.linspace(-1, 4, steps=1000)[..., None]
     p = gm.prob(t)
-    runnalls_p = runnalls_gm.prob(t)
-    west_p = west_gm.prob(t)
-    gmrc_p = gmrc_gm.prob(t)
-    cowa_p = cowa_gm.prob(t)
-    min_ise_p = min_ise_gm.prob(t)
-    brute_p = brute_gm.prob(t)
+    runnalls_p = runnalls_gm.prob(t).cpu()
+    west_p = west_gm.prob(t).cpu()
+    gmrc_p = gmrc_gm.prob(t).cpu()
+    cowa_p = cowa_gm.prob(t).cpu()
+    min_ise_p = min_ise_gm.prob(t).cpu()
+    brute_p = brute_gm.prob(t).cpu()
 
     fh = plt.figure()
     plt.plot(t, p, '--', c='k')

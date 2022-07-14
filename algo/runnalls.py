@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from copy import deepcopy
 
@@ -21,7 +22,7 @@ def fit_runnalls(gm_ori: GM, L: int):
     while out_gm.n > L:
         c_ij = runnalls_cost(out_gm)
 
-        merge_idx = np.unravel_index(np.argmin(c_ij), c_ij.shape)
+        merge_idx = np.unravel_index(torch.argmin(c_ij).cpu(), c_ij.shape)
         out_gm.merge([merge_idx])
 
     return out_gm
@@ -31,26 +32,23 @@ def runnalls_cost(gm: GM):
     """ calculate the upper bound of KL divergence increase when two components are merged
 
     Returns:
-        np.ndarray: n by n matrix whose diagonal terms are infinite
+        torch.Tensor: n by n matrix whose diagonal terms are infinite
 
     """
 
     pi_sum_ij = (gm.pi[..., None] + gm.pi)[..., None, None]
     pi_prod_ij = (gm.pi[..., None] * gm.pi)[..., None, None]
     term0 = gm.pi[..., None, None] * gm.var
-    term1 = np.einsum(
-        '...i,...j->...ij',
-        np.expand_dims(gm.mu, axis=1) - gm.mu,
-        np.expand_dims(gm.mu, axis=1) - gm.mu,
-    )
-    var_ij = 1. / pi_sum_ij * (np.expand_dims(term0, axis=1) + term0) \
+    mu_diff = gm.mu.unsqueeze(dim=1) - gm.mu
+    term1 = torch.einsum('...i,...j->...ij', mu_diff, mu_diff)
+    var_ij = 1. / pi_sum_ij * (term0.unsqueeze(dim=1) + term0) \
              + pi_prod_ij / pi_sum_ij ** 2 * term1
 
-    pi_det_ij = pi_sum_ij[..., 0, 0] * np.log(np.linalg.det(var_ij))
-    pi_det_i = gm.pi * np.log(np.linalg.det(gm.var))
+    pi_det_ij = pi_sum_ij[..., 0, 0] * torch.log(torch.linalg.det(var_ij))
+    pi_det_i = gm.pi * torch.log(torch.linalg.det(gm.var))
     c_ij = 0.5 * (pi_det_ij - pi_det_i[..., None] - pi_det_i)
 
     # make diagonal term infinite
-    c_ij[np.arange(gm.n), np.arange(gm.n)] = np.inf * np.ones(gm.n)
+    c_ij[torch.arange(gm.n), torch.arange(gm.n)] = torch.inf * torch.ones(gm.n).type_as(c_ij)
 
     return c_ij

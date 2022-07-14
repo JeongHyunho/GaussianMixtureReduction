@@ -1,32 +1,40 @@
 import pytest
-import numpy as np
-from matplotlib import pyplot as plt
+import torch
 
-from mixtures.gm import GM
-from algo.min_ise import fit_min_ise
-
-gm = GM.sample_gm(
-        n=3,
-        d=2,
-        pi_alpha=5*np.ones(3),
-        mu_rng=[0., 3.],
-        var_df=5,
-        var_scale=1/5 * np.eye(2),
-    )
+from algo.min_ise import fit_min_ise, ise_cost
+from mixtures.utils import integral_prod_gauss_prob
 
 
-@pytest.fixture(scope="session")
-def plot(pytestconfig):
-    return pytestconfig.getoption("plot")
-
-
-def test_min_ise(plot):
-    m_gm = fit_min_ise(gm, L=2)
+def test_min_ise(plot, sampled_gm, helper):
+    m_gm = fit_min_ise(sampled_gm, L=2)
 
     if plot:
-        t0, t1 = np.meshgrid(np.linspace(-1., 4., 100), np.linspace(-1., 4., 100))
-        m_p = m_gm.prob(np.stack([t0, t1], axis=-1))
-        print(m_gm)
-        plt.contourf(t0, t1, m_p)
-        plt.plot(m_gm.mu[:, 0], m_gm.mu[:, 1], 'x')
-        plt.show()
+        helper.sampled_gm_plot(m_gm)
+
+
+@pytest.mark.parametrize('mode', ['cross', 'self'])
+def test_batch_integral_prod_gauss_prob(mode, sampled_batch_gm):
+    batch_p = integral_prod_gauss_prob(
+        sampled_batch_gm.mu,
+        sampled_batch_gm.var,
+        sampled_batch_gm.mu,
+        sampled_batch_gm.var,
+        mode=mode,
+    )
+
+    for gm, bp_i in zip(sampled_batch_gm, batch_p):
+        assert torch.all(torch.abs(bp_i - integral_prod_gauss_prob(gm.mu, gm.var, gm.mu, gm.var, mode=mode)) < 1e-6)
+
+
+def test_batch_ise_cost(sampled_batch_gm):
+    batch_c = ise_cost(sampled_batch_gm)
+
+    for gm, bc_i in zip(sampled_batch_gm, batch_c):
+        assert torch.all(bc_i == ise_cost(gm))
+
+
+def test_batch_min_ise(sampled_batch_gm):
+    m_batch_gm = fit_min_ise(sampled_batch_gm, L=2)
+
+    for gm, m_gm in zip(sampled_batch_gm, m_batch_gm):
+        assert m_gm == fit_min_ise(gm, L=2)

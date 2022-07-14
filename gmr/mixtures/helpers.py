@@ -49,13 +49,13 @@ def check_batch(pi: torch.Tensor, mu: torch.Tensor, var: torch.Tensor, batch_for
     """Confirm parameters' batch size is consistent
 
     Args:
-        pi: tensor of (B, N)
-        mu: tensor of (B, N, D)
-        var: tensor of (B, N, D, D)
+        pi: tensor of (*B, N)
+        mu: tensor of (*B, N, D)
+        var: tensor of (*B, N, D, D)
         batch_form: bool
 
     Returns:
-        int: batch size
+        list: list of batch sizes
 
     Raises:
         ValueError: if mixture parameters' dimensions aren't consistent
@@ -66,7 +66,7 @@ def check_batch(pi: torch.Tensor, mu: torch.Tensor, var: torch.Tensor, batch_for
         assert pi.ndim > 1 or mu.ndim > 2 or var.ndim > 3, 'batch parameters is not expected'
         assert pi.shape[0] == mu.shape[0] == var.shape[0], 'inconsistent batch size'
 
-        return pi.shape[0]
+        return pi.shape[:-1]
 
     else:
         assert pi.ndim < 2 and mu.ndim < 3 and var.ndim < 4, 'only 1D batch is allowed'

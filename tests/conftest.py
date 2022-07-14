@@ -14,7 +14,7 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope='session')
-def sampled_gm(use_gpu):
+def _gm(use_gpu):
     if use_gpu:
         mixtures.options['device'] = 'cuda'
 
@@ -31,13 +31,13 @@ def sampled_gm(use_gpu):
 
 
 @pytest.fixture(scope='session')
-def sampled_batch_gm(use_gpu):
+def _batch_gm(use_gpu):
     if use_gpu:
         mixtures.options['device'] = 'cuda'
 
     batch_gm = BatchGM.sample_batch_gm(
         n=3,
-        b=5,
+        b=[5],
         d=2,
         pi_alpha=5 * torch.ones(3),
         mu_rng=[0., 3.],
@@ -46,6 +46,23 @@ def sampled_batch_gm(use_gpu):
     )
 
     return batch_gm
+
+@pytest.fixture(scope='session')
+def _dbatch_gm(use_gpu):
+    if use_gpu:
+        mixtures.options['device'] = 'cuda'
+
+    double_batch_gm = BatchGM.sample_batch_gm(
+        n=3,
+        b=[2, 5],
+        d=2,
+        pi_alpha=5 * torch.ones(3),
+        mu_rng=[0., 3.],
+        var_df=5,
+        var_scale=1 / 5 * torch.eye(2),
+    )
+
+    return double_batch_gm
 
 
 @pytest.fixture(scope="session")

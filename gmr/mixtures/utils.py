@@ -7,19 +7,22 @@ import torch
 def setdiff1d(tensor0: torch.Tensor, tensor1: torch.Tensor):
     """Find the set difference of two vector tensors.
     Return the unique values in tensor0 that are not in tensor1.
+    It assumes each row of tensor0 contains corresponding row of tensor1
 
     Args:
-        tensor0: tensor of (N,)
-        tensor1: tensor of (M,)
+        tensor0: tensor of (..., N)
+        tensor1: tensor of (..., M) where N > M
 
     Returns:
-        torch.Tensor: tensor of (..., L) where L <= N
+        torch.Tensor: tensor of (..., N - M)
 
     """
 
     notin_idx = torch.ne(tensor0.unsqueeze(dim=-1), tensor1.unsqueeze(dim=-2)).all(dim=-1)
+    num_remain = tensor0.size(-1) - tensor1.size(-1)
+    out_tensor = torch.masked_select(tensor0, notin_idx).view(*tensor0.shape[:-1], num_remain)
 
-    return tensor0[notin_idx]
+    return out_tensor
 
 
 def gauss_prob(x: torch.Tensor, mu: torch.Tensor, var: torch.Tensor) -> torch.Tensor:

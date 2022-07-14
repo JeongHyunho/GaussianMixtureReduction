@@ -23,23 +23,23 @@ def test_gm_mul(plot):
         plt.show()
 
 
-def test_calc_ise(sampled_gm):
-    assert calc_ise(sampled_gm, sampled_gm) < 1e-9
+def test_calc_ise(_gm):
+    assert calc_ise(_gm, _gm) < 1e-9
 
 
-def test_gm_prob(plot, sampled_gm):
+def test_gm_prob(plot, _gm):
     x, y = torch.meshgrid(torch.linspace(-1., 4., 100), torch.linspace(-1., 4., 100))
-    xy = torch.stack([x, y], dim=-1).to(sampled_gm.mu)
-    p = sampled_gm.prob(xy)
+    xy = torch.stack([x, y], dim=-1).to(_gm.mu)
+    p = _gm.prob(xy)
 
 
-def test_merge_gm(plot, sampled_gm, helper):
-    cp_gm = deepcopy(sampled_gm)
+def test_merge_gm(plot, _gm, helper):
+    cp_gm = deepcopy(_gm)
     cp_gm.merge([[0, 1]])
 
     if plot:
         helper.sampled_gm_plot(cp_gm)
 
 
-def test_kl_gm_comp(sampled_gm):
-    assert torch.all(torch.diag(kl_gm_comp(sampled_gm, sampled_gm)) < 1e-6)
+def test_kl_gm_comp(_gm):
+    assert torch.all(torch.diag(kl_gm_comp(_gm, _gm)) < 1e-6)

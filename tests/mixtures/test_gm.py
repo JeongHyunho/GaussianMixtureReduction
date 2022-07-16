@@ -1,3 +1,4 @@
+import pytest
 import torch
 from matplotlib import pyplot as plt
 from copy import deepcopy
@@ -27,10 +28,11 @@ def test_calc_ise(_gm):
     assert calc_ise(_gm, _gm) < 1e-9
 
 
-def test_gm_prob(plot, _gm):
+@pytest.mark.parametrize('reduce', [True, False])
+def test_gm_prob(plot, _gm, reduce):
     x, y = torch.meshgrid(torch.linspace(-1., 4., 100), torch.linspace(-1., 4., 100))
     xy = torch.stack([x, y], dim=-1).to(_gm.mu)
-    p = _gm.prob(xy)
+    p = _gm.prob(xy, reduce=reduce)
 
 
 def test_merge_gm(plot, _gm, helper):

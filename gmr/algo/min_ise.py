@@ -30,13 +30,15 @@ def fit_min_ise(gm_ori: GM | BatchGM, L: int, inplace=False):
         out_gm = deepcopy(gm_ori)
 
     while out_gm.n > L:
-        cost = ise_cost(out_gm)
+        with torch.no_grad():
+            cost = ise_cost(out_gm)
 
         if type(gm_ori) is GM:
             merge_idx = np.unravel_index(torch.argmin(cost).cpu(), cost.shape)
             out_gm.merge([merge_idx])
         else:
-            merge_idx = [np.unravel_index(torch.argmin(c_ij).cpu(), c_ij.shape) for c_ij in cost]
+            min_idx = np.unravel_index(torch.argmin(cost.view(-1,  out_gm.n ** 2), dim=-1).cpu(), (out_gm.n, out_gm.n))
+            merge_idx = np.reshape(np.stack(min_idx, axis=0).T, (*out_gm.b, 2))
             out_gm.merge(merge_idx)
 
     return out_gm
@@ -63,9 +65,9 @@ def ise_cost(gm: GM | BatchGM):
              + (pi_prod_ij / pi_sum_ij ** 2)[..., None, None] * _var_btw_ij                          # (..., N, N, D, D)
 
     # four cost terms
-    cost_cross = pi_prod_ij * integral_prod_gauss_prob(gm.mu, gm.var, gm.mu, gm.var, mode='cross')
+    cost_cross = pi_prod_ij * integral_prod_gauss_prob(gm.mu, gm.var, gm.mu, gm.var, mode='cross', same_dist=True)
     cost_self = torch.einsum('...ii->...i', cost_cross)
-    cost_merge = pi_sum_ij ** 2 * integral_prod_gauss_prob(mu_ij, var_ij, mu_ij, var_ij, mode='self')
+    cost_merge = pi_sum_ij ** 2 * integral_prod_gauss_prob(mu_ij, var_ij, mu_ij, var_ij, mode='self', same_dist=True)
     cost_trans = gm.pi[..., None] * pi_sum_ij * integral_prod_gauss_prob(
         gm.mu.unsqueeze(dim=-2), gm.var.unsqueeze(dim=-3), mu_ij, var_ij, mode='self')
 

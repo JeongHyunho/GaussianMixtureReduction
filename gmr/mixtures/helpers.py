@@ -1,23 +1,6 @@
 import torch
 
 
-def check_var(var: torch.Tensor):
-    """Confirm variance matrix is symmetric and positive definite
-
-    Args:
-        var: tensor of (..., D, D)
-
-    Raises:
-        ValueError: if inadequate variance matrix
-
-    """
-
-    _trs_diff = torch.abs(var - torch.swapaxes(var, -2, -1))
-    assert torch.all(_trs_diff < 1e-6), 'not symmetric'
-    _eigvals = torch.linalg.eigvalsh(var)
-    assert torch.all(_eigvals >= -1e-6), 'not semi-positive definite'
-
-
 def check_dim(pi: torch.Tensor, mu: torch.Tensor, var: torch.Tensor):
     """Confirm mixture parameters have consistent dimensions
 

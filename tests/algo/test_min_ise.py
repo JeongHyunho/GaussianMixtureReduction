@@ -38,3 +38,10 @@ def test_batch_min_ise(_batch_gm):
 
     for gm, m_gm in zip(_batch_gm, m_batch_gm):
         assert m_gm == fit_min_ise(gm, L=2)
+
+
+def test_double_batch_min_ise(_dbatch_gm):
+    m_db_batch_gm = fit_min_ise(_dbatch_gm, L=2)
+
+    for b_gm, m_dbgm in zip(_dbatch_gm, m_db_batch_gm):
+        assert m_dbgm == fit_min_ise(b_gm, L=2)

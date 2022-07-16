@@ -7,12 +7,24 @@ import torch
 from torch import nn
 from torch.distributions import dirichlet, wishart
 
-from gmr.mixtures.helpers import check_var, check_dim, check_batch
-from gmr.mixtures.utils import gauss_prob, integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
+from .helpers import check_dim, check_batch
+from .utils import gauss_prob, integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
 
-options = {
-    'device': 'cpu',
-}
+
+class Options(object):
+    _instance = None
+    device = 'cpu'
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+        return cls._instance
+
+    def __repr__(self):
+        return "Options: [device: %s]" % self.device
+
+
+options = Options()
 
 
 class GM(nn.Module):
@@ -32,11 +44,10 @@ class GM(nn.Module):
         self.register_buffer('pi', pi if isinstance(pi, torch.Tensor) else torch.tensor(pi))
         self.register_buffer('mu', mu if isinstance(mu, torch.Tensor) else torch.stack(mu, dim=0))
         self.register_buffer('var', var if isinstance(var, torch.Tensor) else torch.stack(var, dim=0))
-        self.to(options['device'])
+        self.to(options.device)
 
-        # check args
+        # check dimension
         self.n, self.d = check_dim(self.pi, self.mu, self.var)  # the number of mixture components, feature dim
-        check_var(self.var)
 
         # the size of batch
         self.b = check_batch(self.pi, self.mu, self.var, self.batch_form)
@@ -47,9 +58,9 @@ class GM(nn.Module):
     def __eq__(self, other: 'GM'):
         if self.n != other.n:
             return False
-        elif torch.any(torch.gt(torch.abs(self.mu - other.mu), 1e-9)):
+        elif torch.any(torch.gt(torch.abs(self.mu - other.mu), 1e-5)):
             return False
-        elif torch.any(torch.gt(torch.abs(self.var - other.var), 1e-9)):
+        elif torch.any(torch.gt(torch.abs(self.var - other.var), 1e-5)):
             return False
         else:
             return True
@@ -92,24 +103,27 @@ class GM(nn.Module):
 
         return out_gm
 
-    def prob(self, t: torch.Tensor):
+    def prob(self, t: torch.Tensor, reduce=True):
         """Return gaussian mixture's probability on t
 
         Args:
             t: tensor of (..., D) and D is feature dimension of the mixture
+            reduce: if True, do sum reduction on last dim
 
         Returns:
-            torch.Tensor: same length with t
+            torch.Tensor: tensor of (..., [B]) if 'reduce' is True, (..., [B], D) otherwise
 
         """
 
         if t.size(-1) != self.d:
             raise ValueError(f'query points have different feature dim ({t.shape[-1]}), not {self.d}')
-        prob = torch.sum(self.pi * gauss_prob(t, self.mu, self.var), dim=-1)
+
+        _pi = self.pi if reduce else self.pi[..., None]
+        prob = torch.sum(_pi * gauss_prob(t, self.mu, self.var, reduce=reduce), dim=-1 if reduce else -2)
 
         return prob
 
-    def merge(self, idx_list: List[Iterable | torch.Tensor]):
+    def merge(self, idx_list: Iterable):
         """Merge indexed gaussian mixture components with preserved moments
 
         Args:

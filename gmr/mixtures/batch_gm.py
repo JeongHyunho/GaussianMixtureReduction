@@ -5,9 +5,9 @@ from typing import List
 import torch
 from torch.distributions import dirichlet, wishart
 
-from gmr.mixtures.gm import GM
-from gmr.mixtures.helpers import check_batch
-from gmr.mixtures.utils import integral_prod_gauss_prob, prod_gauss_dist, setdiff1d
+from .gm import GM
+from .helpers import check_batch
+from .utils import integral_prod_gauss_prob, prod_gauss_dist, setdiff1d, clamp_inf
 
 
 class BatchGM(GM):
@@ -23,6 +23,7 @@ class BatchGM(GM):
                        f"BatchGM0: (*{self.b}, {self.n}, {self.d}), BatchGM1: (*{other.b}, {other.n}, {other.d})")
 
         _s = integral_prod_gauss_prob(self.mu, self.var, other.mu, other.var, mode='cross')
+        _s = clamp_inf(_s)
         _pi = (_s * self.pi.unsqueeze(dim=-1) * other.pi.unsqueeze(dim=-2)).view(*self.b, -1)
         _mu, _var = prod_gauss_dist(self.mu, self.var, other.mu, other.var, mode='cross')
 
@@ -41,6 +42,9 @@ class BatchGM(GM):
             return BatchGM(pi, mu, var)
         else:
             return GM(pi, mu, var)
+
+    def to_gm(self) -> List[GM]:
+        return [GM(pi=_pi, mu=_mu, var=_var) for _pi, _mu, _var in zip(self.pi, self.mu, self.var)]
 
     @staticmethod
     def sample_batch_gm(n, b, d, pi_alpha, mu_rng, var_df, var_scale, seed=None):
@@ -85,9 +89,10 @@ class BatchGM(GM):
         target_var = torch.take_along_dim(self.var, idx_list[..., None, None], dim=-3)    # *B x 2 x D x D
 
         _pi = torch.sum(target_pi, dim=-1, keepdim=True)
-        _mu = 1. / _pi[..., None] * torch.sum(target_pi[..., None] * target_mu, dim=-2, keepdim=True)
+        _mu = 1. / (_pi[..., None] + 1e-6) * \
+              torch.sum(target_pi[..., None] * target_mu, dim=-2, keepdim=True)
         _btw = torch.einsum('...i,...j->...ij', target_mu - _mu, target_mu - _mu)
-        _var = 1. / _pi[..., None, None] * \
+        _var = 1. / (_pi[..., None, None] + 1e-6) * \
                torch.sum(target_pi[..., None, None] * (target_var + _btw), dim=-3, keepdim=True)
 
         all_idx = torch.broadcast_to(torch.arange(self.n), (*self.b, self.n)).to(idx_list)

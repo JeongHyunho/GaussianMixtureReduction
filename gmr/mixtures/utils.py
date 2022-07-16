@@ -2,6 +2,13 @@ import math
 from typing import Tuple
 
 import torch
+from torch.distributions.utils import clamp_probs
+
+
+def clamp_inf(val):
+    b_max = torch.finfo(val.dtype).max
+    b_min = torch.finfo(val.dtype).min
+    return val.clamp(min=b_min, max=b_max)
 
 
 def setdiff1d(tensor0: torch.Tensor, tensor1: torch.Tensor):
@@ -25,16 +32,17 @@ def setdiff1d(tensor0: torch.Tensor, tensor1: torch.Tensor):
     return out_tensor
 
 
-def gauss_prob(x: torch.Tensor, mu: torch.Tensor, var: torch.Tensor) -> torch.Tensor:
+def gauss_prob(x: torch.Tensor, mu: torch.Tensor, var: torch.Tensor, reduce=True) -> torch.Tensor:
     """Return probability of x for (mu, var) distributed Gaussian
 
     Args:
         x: tensor of (..., D)
         mu: tensor of ([B], N, D)
         var: tensor of ([B], N, D, D)
+        reduce: if True, do sum reduction on last dim
 
     Returns:
-        torch.Tensor: tensor of (..., [B], N)
+        torch.Tensor: tensor of (..., [B], N) if 'reduce' is True, (..., [B], N, D) otherwise
 
     """
 
@@ -43,14 +51,19 @@ def gauss_prob(x: torch.Tensor, mu: torch.Tensor, var: torch.Tensor) -> torch.Te
     ex_var = torch.broadcast_to(var, x.shape[:-1] + var.shape)
 
     term0 = d * math.log(2 * math.pi) + torch.log(torch.linalg.det(var))
-    term1 = torch.einsum('...i,...i->...', ex_x - mu, torch.linalg.solve(ex_var, ex_x - mu))
+    term0 = term0 if reduce else term0[..., None]
+    term1 = torch.einsum(
+        '...i,...i->...' if reduce else '...i,...i->...i',
+        ex_x - mu,
+        torch.linalg.solve(ex_var, ex_x - mu),
+    )
     prob = torch.exp(- 0.5 * (term0 + term1))
 
     return prob
 
 
 def integral_prod_gauss_prob(mu0: torch.Tensor, var0: torch.Tensor, mu1: torch.Tensor, var1: torch.Tensor,
-                             mode='self') -> torch.Tensor:
+                             mode='self', same_dist=False) -> torch.Tensor:
     """Return integration of product of two gaussian
 
     Args:
@@ -59,6 +72,7 @@ def integral_prod_gauss_prob(mu0: torch.Tensor, var0: torch.Tensor, mu1: torch.T
         mu1: tensor of (..., M, D)
         var1: tensor of (..., M, D, D)
         mode: 'self' or 'cross'
+        same_dist: whether mu0 == mu1 and var0 == var1
 
     Returns:
         torch.Tensor: tensor of (..., N) if mode is 'self', (..., N, M) otherwise
@@ -77,8 +91,15 @@ def integral_prod_gauss_prob(mu0: torch.Tensor, var0: torch.Tensor, mu1: torch.T
         raise ValueError(f"mode(:{mode}) should be in ['self', 'cross'].")
 
     term0 = d * math.log(2 * math.pi) + torch.log(torch.linalg.det(sum_var_ij))
-    term1 = torch.einsum('...i,...i->...', diff_mu_ij, torch.linalg.solve(sum_var_ij, diff_mu_ij))
-    prob = torch.exp(- 0.5 * (term0 + term1))
+    if same_dist:
+        term1 = 0.
+    else:
+        term1 = torch.einsum(
+            '...i,...i->...',
+            diff_mu_ij,
+            torch.linalg.solve(sum_var_ij + 1e-6 * torch.eye(d).to(sum_var_ij), diff_mu_ij),
+        )
+    prob = clamp_probs(torch.exp(- 0.5 * (term0 + term1)))
 
     return prob
 
@@ -100,10 +121,11 @@ def prod_gauss_dist(mu0: torch.Tensor, var0: torch.Tensor, mu1: torch.Tensor, va
 
     """
 
-    _inv_var0 = torch.linalg.inv(var0)
-    _inv_var1 = torch.linalg.inv(var1)
-    _inv_var_mu0 = torch.linalg.solve(var0, mu0)
-    _inv_var_mu1 = torch.linalg.solve(var1, mu1)
+    d = mu0.size(-1)
+    _inv_var0 = torch.linalg.inv(var0 + 1e-6 * torch.eye(d).to(var0))
+    _inv_var1 = torch.linalg.inv(var1 + 1e-6 * torch.eye(d).to(var1))
+    _inv_var_mu0 = torch.linalg.solve(var0 + 1e-6 * torch.eye(d).to(var0), mu0)
+    _inv_var_mu1 = torch.linalg.solve(var1 + 1e-6 * torch.eye(d).to(var1), mu1)
 
     if mode == 'self':
         _sum_inv_var = _inv_var0 + _inv_var1
